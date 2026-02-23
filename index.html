@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Forensic Environmental Auditor</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">Forensic Environmental Auditor</div>
+          <h1>Discrepancy Detection Between Project Claims and Regulations</h1>
+          <p class="subtitle">
+            Generic demo system for auditing project submissions against global
+            environmental requirements.
+          </p>
+        </div>
+        <div class="status-pill">
+          <span class="dot"></span>
+          Live Audit Pipeline
+        </div>
+      </header>
+
+      <main class="grid">
+        <section class="panel intake">
+          <div class="panel-header">
+            <h2>Project Intake</h2>
+            <span class="tag">Projects · Project_Manager_Agent</span>
+          </div>
+
+          <div class="card upload-zone" id="uploadZone">
+            <input id="fileInput" type="file" accept=".pdf,.txt" />
+            <div>
+              <h3>Upload Study File</h3>
+              <p>.pdf or .txt supported</p>
+              <button class="ghost" type="button" id="chooseFileBtn">Select File</button>
+            </div>
+          </div>
+
+          <form class="card form" id="intakeForm">
+            <label>
+              Project Name
+              <input type="text" id="projectName" placeholder="Aurora Basin Upgrade" />
+            </label>
+            <label>
+              Industry
+              <select id="industry">
+                <option>Mining</option>
+                <option>Real Estate</option>
+                <option>Energy</option>
+                <option>Infrastructure</option>
+                <option>Manufacturing</option>
+              </select>
+            </label>
+            <label>
+              Coordinates (Lat, Lng)
+              <div class="row">
+                <input type="number" step="0.0001" id="lat" placeholder="29.7629" />
+                <input type="number" step="0.0001" id="lng" placeholder="-95.3677" />
+              </div>
+            </label>
+            <label>
+              Scenario
+              <select id="scenario">
+                <option>Mining</option>
+                <option>Real Estate</option>
+                <option>Energy</option>
+              </select>
+            </label>
+            <label>
+              Project Claims
+              <textarea id="claims" rows="4" placeholder="Example: The project maintains Neutral Impact across hydrological systems."></textarea>
+            </label>
+            <label>
+              Engineering Specs
+              <textarea id="specs" rows="4" placeholder="Example: Resource Extraction / Discharge in Phase 2."></textarea>
+            </label>
+            <button type="button" class="primary" id="runAuditBtn">Run Audit</button>
+          </form>
+        </section>
+
+        <section class="panel core">
+          <div class="panel-header">
+            <h2>Geospatial Core</h2>
+            <span class="tag">Maps · GeoJSON_Layer_Controller</span>
+          </div>
+
+          <div class="card map-card">
+            <div class="map-toolbar">
+              <span>Layers</span>
+              <label class="switch">
+                <input type="checkbox" id="layerBoundary" checked />
+                <span>Project Boundary</span>
+              </label>
+              <label class="switch">
+                <input type="checkbox" id="layerHydro" checked />
+                <span>Hydrographic Network</span>
+              </label>
+              <label class="switch">
+                <input type="checkbox" id="layerVegetation" checked />
+                <span>Protected Vegetation Heatmap</span>
+              </label>
+            </div>
+            <div id="map" class="map">
+              <div class="map-placeholder">
+                <div>
+                  <h3>Google Maps / Earth Engine View</h3>
+                  <p>
+                    Add a Google Maps API key in <span class="mono">app.js</span>
+                    to enable the live map. The demo overlay layers are active
+                    below.
+                  </p>
+                </div>
+              </div>
+              <div class="layer boundary"></div>
+              <div class="layer hydro"></div>
+              <div class="layer vegetation"></div>
+            </div>
+            <div class="legend">
+              <div><span class="swatch boundary"></span> Project Boundary</div>
+              <div><span class="swatch hydro"></span> Hydrographic Network</div>
+              <div><span class="swatch vegetation"></span> Vegetation Heatmap</div>
+            </div>
+          </div>
+
+          <div class="card flow-card">
+            <div class="flow-header">
+              <h3>AntiGravity Dataflow</h3>
+              <p>Interconnected modules for demo impact.</p>
+            </div>
+            <div class="flow">
+              <div class="flow-node">
+                <strong>Projects</strong>
+                <span>Project_Manager_Agent</span>
+              </div>
+              <div class="flow-node">
+                <strong>Maps</strong>
+                <span>GeoJSON_Layer_Controller</span>
+              </div>
+              <div class="flow-node">
+                <strong>Analysis</strong>
+                <span>Gemini_Reasoning_Engine</span>
+              </div>
+              <div class="flow-node">
+                <strong>Reports</strong>
+                <span>Automated_PDF_Generator</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card results">
+            <div class="results-header">
+              <h3>Audit Output</h3>
+              <button class="secondary" id="exportBtn">Generate Correction Roadmap</button>
+            </div>
+            <div class="results-grid">
+              <div class="gauge-card">
+                <div class="gauge" id="riskGauge">
+                  <div class="gauge-inner">
+                    <span class="gauge-value" id="riskValue">0</span>
+                    <span class="gauge-label">Risk Score</span>
+                  </div>
+                </div>
+                <p class="gauge-note">
+                  Dynamic risk score (0-100) from regulatory, geospatial, and
+                  consistency checks.
+                </p>
+              </div>
+              <div class="inconsistency" id="inconsistencyCard">
+                <div class="inconsistency-header">
+                  <h4>Inconsistency Card</h4>
+                  <span class="chip" id="severityChip">Stable</span>
+                </div>
+                <div class="row-block">
+                  <span class="label">Claimed Statement</span>
+                  <p id="claimedText">Awaiting project claims.</p>
+                </div>
+                <div class="row-block">
+                  <span class="label">Technical Reality</span>
+                  <p id="realityText">Awaiting engineering specs.</p>
+                </div>
+                <div class="row-block">
+                  <span class="label">Legal Conflict</span>
+                  <p id="legalText">No conflicts detected.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel feed">
+          <div class="panel-header">
+            <h2>AI Audit Feed</h2>
+            <span class="tag">Analysis · Gemini_Reasoning_Engine</span>
+          </div>
+          <div class="terminal" id="terminal">
+            <div class="terminal-line muted">Awaiting audit execution...</div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        Demo-only environment. Regulatory and geospatial signals are simulated
+        until connected to live data sources.
+      </footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

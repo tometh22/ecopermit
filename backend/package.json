@@ -1,0 +1,16 @@
+{
+  "name": "forensic-environmental-auditor-backend",
+  "version": "0.1.0",
+  "description": "Backend API for the Forensic Environmental Auditor demo",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
