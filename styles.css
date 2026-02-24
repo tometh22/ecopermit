@@ -340,6 +340,12 @@ button.ghost {
   color: var(--muted);
 }
 
+.map-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .swatch {
   display: inline-block;
   width: 12px;
@@ -447,6 +453,50 @@ button.ghost {
   color: var(--text);
   font-size: 18px;
   margin-top: 4px;
+}
+
+.context-card h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.context-grid div {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.context-grid span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.context-grid strong {
+  font-size: 18px;
+  color: var(--text);
+}
+
+.context-grid small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.context-note {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--muted);
 }
 
 .gauge {

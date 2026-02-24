@@ -121,9 +121,9 @@
                 <div>
                   <h3>Satellite / Terrain View</h3>
                   <p>
-                    Add a Google Maps API key in <span class="mono">app.js</span>
-                    to enable the live map. The demo overlay layers are active
-                    below.
+                    Add a Google Maps API key via
+                    <span class="mono">?maps_key=YOUR_KEY</span> to enable live
+                    satellite imagery.
                   </p>
                 </div>
               </div>
@@ -136,6 +136,7 @@
               <div><span class="swatch hydro"></span> Hydrographic Network</div>
               <div><span class="swatch vegetation"></span> Vegetation Heatmap</div>
             </div>
+            <p class="map-note">Satellite basemap powered by Google Maps when a key is provided.</p>
           </div>
 
           <div class="card results">
@@ -190,6 +191,33 @@
                 <strong id="kpiOverlaps">0</strong>
               </div>
             </div>
+          </div>
+
+          <div class="card context-card">
+            <h4>Environmental Conditions</h4>
+            <div class="context-grid">
+              <div>
+                <span>AQI</span>
+                <strong id="envAqi">--</strong>
+                <small id="envAqiCategory">--</small>
+              </div>
+              <div>
+                <span>PM2.5</span>
+                <strong id="envPm25">--</strong>
+                <small id="envPm25Units"></small>
+              </div>
+              <div>
+                <span>Temperature</span>
+                <strong id="envTemp">--</strong>
+                <small id="envFeelsLike"></small>
+              </div>
+              <div>
+                <span>Humidity</span>
+                <strong id="envHumidity">--</strong>
+                <small id="envCondition"></small>
+              </div>
+            </div>
+            <p class="context-note" id="envNote">Source: Google Air Quality & Weather</p>
           </div>
 
           <details class="card log-details" open>

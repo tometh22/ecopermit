@@ -5,6 +5,7 @@ const multer = require("multer");
 const dotenv = require("dotenv");
 const { createProject, listProjects, getProject, createAudit, getAudit } = require("./storage");
 const { runAudit } = require("./auditEngine");
+const { fetchEnvironmentalContext } = require("./contextService");
 
 dotenv.config();
 
@@ -100,6 +101,8 @@ app.post("/api/audits", async (req, res, next) => {
     const specs = project?.specs || req.body.specs || "";
     const uploadedFileName = project?.file?.originalName || "";
 
+    const environment = await fetchEnvironmentalContext(coordinates);
+
     const { analysis, logs } = await runAudit({
       projectName,
       industry,
@@ -108,6 +111,8 @@ app.post("/api/audits", async (req, res, next) => {
       specs,
       coordinates,
       uploadedFileName,
+      environment,
+      contextRiskAdjustment: environment?.riskAdjustment ?? 0,
     });
 
     const audit = createAudit({

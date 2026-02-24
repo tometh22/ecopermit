@@ -21,10 +21,26 @@ index.html?api=https://your-api.example.com
 
 This saves the API base URL in `localStorage` for future sessions.
 
-## Optional: Google Maps
+## Google Maps (Satellite)
 
-1. Add a Google Maps API key in `app.js` by setting `GMAPS_API_KEY`.
-2. Reload the page to see the live map render in the Geospatial Core panel.
+Provide a Google Maps JavaScript API key at runtime:
+
+```
+index.html?maps_key=YOUR_GOOGLE_MAPS_KEY
+```
+
+The key is stored in `localStorage` for the browser session and enables the satellite basemap.
+
+## Air Quality + Weather Context
+
+To enable environmental context signals (AQI + weather), set this in the backend `.env` (or Render env vars):
+
+```
+GOOGLE_ENV_API_KEY=YOUR_GOOGLE_API_KEY
+GOOGLE_ENV_CACHE_MS=600000
+```
+
+The key stays server-side. Only the frontend map uses the `maps_key` query param.
 
 ## Demo Logic
 

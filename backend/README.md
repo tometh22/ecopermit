@@ -28,4 +28,5 @@ Server defaults to `http://localhost:5050`.
 - Regulatory RAG and geospatial checks are simulated; replace `auditEngine.js` with real vector DB + GIS integrations.
 - Optional OpenAI step: set `OPENAI_API_KEY` to enable GPT-backed regulatory insights.
 - You can override the model with `OPENAI_MODEL` and tweak reasoning with `OPENAI_REASONING_EFFORT`.
+- Optional environment signals: set `GOOGLE_ENV_API_KEY` to enable Air Quality + Weather context.
 - Data is stored locally in `backend/data/db.json`.

@@ -151,6 +151,7 @@ const buildLogs = ({
   inconsistency,
   overlaps,
   riskScore,
+  environment,
   llmUsed,
   llmError,
 }) => {
@@ -235,6 +236,29 @@ const buildLogs = ({
     });
   }
 
+  if (environment?.airQuality || environment?.weather) {
+    const aqi = environment.airQuality?.aqi;
+    const aqiLabel = environment.airQuality?.category || "Unknown";
+    const temp = environment.weather?.temperatureC;
+    const humidity = environment.weather?.humidity;
+    const parts = [];
+    if (Number.isFinite(aqi)) {
+      parts.push(`AQI ${aqi} (${aqiLabel})`);
+    }
+    if (Number.isFinite(temp)) {
+      parts.push(`Temp ${temp}°C`);
+    }
+    if (Number.isFinite(humidity)) {
+      parts.push(`Humidity ${humidity}%`);
+    }
+    logs.push({
+      agent: "Environmental_Context",
+      message: parts.length
+        ? `Environmental context loaded: ${parts.join(" | ")}.`
+        : "Environmental context loaded.",
+    });
+  }
+
   if (llmError) {
     logs.push({
       agent: "OpenAI_Reasoning_Engine",
@@ -245,7 +269,17 @@ const buildLogs = ({
   return logs;
 };
 
-const runAudit = async ({ projectName, claims, specs, coordinates, uploadedFileName, industry, scenario }) => {
+const runAudit = async ({
+  projectName,
+  claims,
+  specs,
+  coordinates,
+  uploadedFileName,
+  industry,
+  scenario,
+  environment,
+  contextRiskAdjustment = 0,
+}) => {
   let inconsistency = detectInconsistency(claims, specs);
   const overlaps = checkRestrictedZones(coordinates);
   let regulatoryRefs = fetchRegulatoryReferences(coordinates);
@@ -315,7 +349,7 @@ const runAudit = async ({ projectName, claims, specs, coordinates, uploadedFileN
     hasFile: Boolean(uploadedFileName),
     inconsistency,
     overlaps,
-    riskAdjustment,
+    riskAdjustment: riskAdjustment + contextRiskAdjustment,
   });
 
   const analysis = {
@@ -324,6 +358,8 @@ const runAudit = async ({ projectName, claims, specs, coordinates, uploadedFileN
     regulatoryRefs,
     overlaps,
     zoneSummary,
+    environment,
+    contextRiskAdjustment,
     llmSummary,
     riskAdjustment,
     llmUsed: llmUsed && !llmError,
@@ -336,6 +372,7 @@ const runAudit = async ({ projectName, claims, specs, coordinates, uploadedFileN
     inconsistency,
     overlaps,
     riskScore,
+    environment,
     llmUsed,
     llmError,
   });

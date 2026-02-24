@@ -1,4 +1,14 @@
-const GMAPS_API_KEY = "";
+const resolveMapsKey = () => {
+  const params = new URLSearchParams(window.location.search);
+  const param = params.get("maps_key");
+  if (param) {
+    localStorage.setItem("GMAPS_API_KEY", param);
+    return param;
+  }
+  return localStorage.getItem("GMAPS_API_KEY") || "";
+};
+
+const GMAPS_API_KEY = resolveMapsKey();
 
 const resolveApiBaseUrl = () => {
   const params = new URLSearchParams(window.location.search);
@@ -40,6 +50,15 @@ const elements = {
   kpiAlerts: document.getElementById("kpiAlerts"),
   kpiAnchors: document.getElementById("kpiAnchors"),
   kpiOverlaps: document.getElementById("kpiOverlaps"),
+  envAqi: document.getElementById("envAqi"),
+  envAqiCategory: document.getElementById("envAqiCategory"),
+  envPm25: document.getElementById("envPm25"),
+  envPm25Units: document.getElementById("envPm25Units"),
+  envTemp: document.getElementById("envTemp"),
+  envFeelsLike: document.getElementById("envFeelsLike"),
+  envHumidity: document.getElementById("envHumidity"),
+  envCondition: document.getElementById("envCondition"),
+  envNote: document.getElementById("envNote"),
 };
 
 const mapLayers = {
@@ -119,6 +138,53 @@ const setKpis = (analysis) => {
   elements.kpiOverlaps.textContent = analysis?.overlaps?.length || 0;
 };
 
+const setEnvironment = (environment) => {
+  if (!elements.envAqi) {
+    return;
+  }
+
+  if (!environment) {
+    elements.envAqi.textContent = "--";
+    elements.envAqiCategory.textContent = "--";
+    elements.envPm25.textContent = "--";
+    elements.envPm25Units.textContent = "";
+    elements.envTemp.textContent = "--";
+    elements.envFeelsLike.textContent = "";
+    elements.envHumidity.textContent = "--";
+    elements.envCondition.textContent = "";
+    if (elements.envNote) {
+      elements.envNote.textContent = "Source: Google Air Quality & Weather";
+    }
+    return;
+  }
+
+  const aqi = environment.airQuality?.aqi;
+  const category = environment.airQuality?.category;
+  const pm25 = environment.airQuality?.pm25;
+  const pm25Units = environment.airQuality?.pm25Units;
+  const temp = environment.weather?.temperatureC;
+  const feelsLike = environment.weather?.feelsLikeC;
+  const humidity = environment.weather?.humidity;
+  const condition = environment.weather?.condition;
+
+  elements.envAqi.textContent = Number.isFinite(aqi) ? `${aqi}` : "--";
+  elements.envAqiCategory.textContent = category || "--";
+  elements.envPm25.textContent = Number.isFinite(pm25) ? `${pm25}` : "--";
+  elements.envPm25Units.textContent = pm25Units ? String(pm25Units).replace(/_/g, " ").toLowerCase() : "";
+  elements.envTemp.textContent = Number.isFinite(temp) ? `${temp}°C` : "--";
+  elements.envFeelsLike.textContent = Number.isFinite(feelsLike) ? `Feels like ${feelsLike}°C` : "";
+  elements.envHumidity.textContent = Number.isFinite(humidity) ? `${humidity}%` : "--";
+  elements.envCondition.textContent = condition || "";
+
+  if (elements.envNote) {
+    if (environment.errors && environment.errors.length) {
+      elements.envNote.textContent = `Context partial: ${environment.errors.join(" | ")}`;
+    } else if (environment.fetchedAt) {
+      elements.envNote.textContent = `Updated ${new Date(environment.fetchedAt).toLocaleTimeString()}`;
+    }
+  }
+};
+
 const setLoading = (loading) => {
   elements.runAuditBtn.disabled = loading;
   elements.runAuditBtn.textContent = loading ? "Running Audit..." : "Run Audit";
@@ -158,6 +224,7 @@ const updateUI = (analysis) => {
 
   setGauge(analysis.riskScore || 0);
   setKpis(analysis);
+  setEnvironment(analysis.environment);
 
   if (analysis.inconsistency) {
     elements.claimedText.textContent = analysis.inconsistency.claimed;
@@ -387,7 +454,10 @@ const initMap = () => {
     const map = new window.google.maps.Map(elements.map, {
       center,
       zoom: 7,
-      mapTypeId: "terrain",
+      mapTypeId: "satellite",
+      mapTypeControl: false,
+      fullscreenControl: false,
+      streetViewControl: false,
     });
 
     new window.google.maps.Marker({
@@ -416,3 +486,4 @@ bindEvents();
 initMap();
 setGauge(0);
 setKpis(null);
+setEnvironment(null);
