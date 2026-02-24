@@ -31,6 +31,7 @@ const elements = {
   realityText: document.getElementById("realityText"),
   legalText: document.getElementById("legalText"),
   severityChip: document.getElementById("severityChip"),
+  summaryStatus: document.getElementById("summaryStatus"),
   layerBoundary: document.getElementById("layerBoundary"),
   layerHydro: document.getElementById("layerHydro"),
   layerVegetation: document.getElementById("layerVegetation"),
@@ -166,9 +167,15 @@ const updateUI = (analysis) => {
     if (analysis.inconsistency.severity === "CRITICAL_ALERT") {
       elements.severityChip.textContent = "Critical";
       elements.severityChip.classList.add("alert");
+      if (elements.summaryStatus) {
+        elements.summaryStatus.textContent = "Critical";
+      }
     } else {
       elements.severityChip.textContent = "Review";
       elements.severityChip.classList.remove("alert");
+      if (elements.summaryStatus) {
+        elements.summaryStatus.textContent = "Review";
+      }
     }
   } else {
     elements.claimedText.textContent = "Awaiting project claims.";
@@ -176,6 +183,9 @@ const updateUI = (analysis) => {
     elements.legalText.textContent = "No conflicts detected.";
     elements.severityChip.textContent = "Stable";
     elements.severityChip.classList.remove("alert");
+    if (elements.summaryStatus) {
+      elements.summaryStatus.textContent = "Stable";
+    }
   }
 
   if (analysis.llmSummary) {

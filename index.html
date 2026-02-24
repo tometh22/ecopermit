@@ -11,10 +11,10 @@
       <header class="topbar">
         <div>
           <div class="eyebrow">Forensic Environmental Auditor</div>
-          <h1>Environmental Audit Command Center</h1>
+          <h1>Environmental Audit Workspace</h1>
           <p class="subtitle">
-            Enterprise-grade discrepancy detection between project claims,
-            engineering reality, and regulatory frameworks.
+            Clear, enterprise-grade auditing for environmental claims,
+            technical reality, and compliance risk.
           </p>
         </div>
         <div class="status-pill">
@@ -34,23 +34,13 @@
           <div class="kpi-value" id="kpiAlerts">0</div>
           <span class="kpi-note">Critical or review flags</span>
         </div>
-        <div class="kpi">
-          <span class="kpi-label">Regulatory Anchors</span>
-          <div class="kpi-value" id="kpiAnchors">0</div>
-          <span class="kpi-note">Matched legal references</span>
-        </div>
-        <div class="kpi">
-          <span class="kpi-label">Spatial Overlaps</span>
-          <div class="kpi-value" id="kpiOverlaps">0</div>
-          <span class="kpi-note">Restricted zones intersected</span>
-        </div>
       </section>
 
       <main class="grid">
         <section class="panel intake">
           <div class="panel-header">
             <h2>Project Intake</h2>
-            <span class="tag">Project Manager</span>
+            <span class="tag">Step 1</span>
           </div>
 
           <div class="card upload-zone" id="uploadZone">
@@ -106,8 +96,8 @@
 
         <section class="panel core">
           <div class="panel-header">
-            <h2>Geospatial Core</h2>
-            <span class="tag">Operational View</span>
+            <h2>Geospatial Overview</h2>
+            <span class="tag">Step 2</span>
           </div>
 
           <div class="card map-card">
@@ -123,13 +113,13 @@
               </label>
               <label class="switch">
                 <input type="checkbox" id="layerVegetation" checked />
-                <span>Protected Vegetation Heatmap</span>
+                <span>Protected Vegetation</span>
               </label>
             </div>
             <div id="map" class="map">
               <div class="map-placeholder">
                 <div>
-                  <h3>Google Maps / Earth Engine View</h3>
+                  <h3>Satellite / Terrain View</h3>
                   <p>
                     Add a Google Maps API key in <span class="mono">app.js</span>
                     to enable the live map. The demo overlay layers are active
@@ -151,76 +141,85 @@
           <div class="card results">
             <div class="results-header">
               <div>
-                <h3>Audit Output</h3>
-                <p class="muted">Key discrepancies and compliance triggers.</p>
+                <h3>Findings</h3>
+                <p class="muted">Key discrepancies and legal triggers.</p>
               </div>
               <button class="secondary" id="exportBtn">Generate Correction Roadmap</button>
             </div>
-            <div class="results-grid">
-              <div class="gauge-card">
-                <div class="gauge" id="riskGauge">
-                  <div class="gauge-inner">
-                    <span class="gauge-value" id="riskValue">0</span>
-                    <span class="gauge-label">Risk Score</span>
-                  </div>
-                </div>
-                <p class="gauge-note">
-                  Dynamic risk score (0-100) from regulatory, geospatial, and
-                  consistency checks.
-                </p>
+            <div class="inconsistency" id="inconsistencyCard">
+              <div class="inconsistency-header">
+                <h4>Inconsistency Card</h4>
+                <span class="chip" id="severityChip">Stable</span>
               </div>
-              <div class="inconsistency" id="inconsistencyCard">
-                <div class="inconsistency-header">
-                  <h4>Inconsistency Card</h4>
-                  <span class="chip" id="severityChip">Stable</span>
-                </div>
-                <div class="row-block">
-                  <span class="label">Claimed Statement</span>
-                  <p id="claimedText">Awaiting project claims.</p>
-                </div>
-                <div class="row-block">
-                  <span class="label">Technical Reality</span>
-                  <p id="realityText">Awaiting engineering specs.</p>
-                </div>
-                <div class="row-block">
-                  <span class="label">Legal Conflict</span>
-                  <p id="legalText">No conflicts detected.</p>
-                </div>
+              <div class="row-block">
+                <span class="label">Claimed Statement</span>
+                <p id="claimedText">Awaiting project claims.</p>
+              </div>
+              <div class="row-block">
+                <span class="label">Technical Reality</span>
+                <p id="realityText">Awaiting engineering specs.</p>
+              </div>
+              <div class="row-block">
+                <span class="label">Legal Conflict</span>
+                <p id="legalText">No conflicts detected.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel summary">
+          <div class="panel-header">
+            <h2>Audit Summary</h2>
+            <span class="tag" id="summaryStatus">Stable</span>
+          </div>
+
+          <div class="card summary-card">
+            <div class="gauge" id="riskGauge">
+              <div class="gauge-inner">
+                <span class="gauge-value" id="riskValue">0</span>
+                <span class="gauge-label">Risk Score</span>
+              </div>
+            </div>
+            <div class="summary-metrics">
+              <div>
+                <span>Regulatory anchors</span>
+                <strong id="kpiAnchors">0</strong>
+              </div>
+              <div>
+                <span>Spatial overlaps</span>
+                <strong id="kpiOverlaps">0</strong>
               </div>
             </div>
           </div>
 
+          <details class="card log-details" open>
+            <summary>Audit Log (live)</summary>
+            <div class="terminal" id="terminal">
+              <div class="terminal-line muted">Awaiting audit execution...</div>
+            </div>
+          </details>
+
           <details class="card details">
-            <summary>Technical Trace: AntiGravity Dataflow</summary>
+            <summary>Technical Trace</summary>
             <div class="flow">
               <div class="flow-node">
                 <strong>Projects</strong>
-                <span>Project_Manager_Agent</span>
+                <span>Project Manager</span>
               </div>
               <div class="flow-node">
                 <strong>Maps</strong>
-                <span>GeoJSON_Layer_Controller</span>
+                <span>GeoJSON Layer</span>
               </div>
               <div class="flow-node">
                 <strong>Analysis</strong>
-                <span>GPT_Reasoning_Engine</span>
+                <span>GPT Reasoning</span>
               </div>
               <div class="flow-node">
                 <strong>Reports</strong>
-                <span>Automated_PDF_Generator</span>
+                <span>Correction Roadmap</span>
               </div>
             </div>
           </details>
-        </section>
-
-        <section class="panel feed">
-          <div class="panel-header">
-            <h2>AI Audit Feed</h2>
-            <span class="tag">Live Reasoning</span>
-          </div>
-          <div class="terminal" id="terminal">
-            <div class="terminal-line muted">Awaiting audit execution...</div>
-          </div>
         </section>
       </main>
 
