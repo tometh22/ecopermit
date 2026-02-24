@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,119 +11,127 @@
       <header class="topbar">
         <div>
           <div class="eyebrow">Forensic Environmental Auditor</div>
-          <h1>Environmental Audit Workspace</h1>
+          <h1>Auditoría Ambiental Forense</h1>
           <p class="subtitle">
-            Clear, enterprise-grade auditing for environmental claims,
-            technical reality, and compliance risk.
+            Revisión clara y profesional de estudios ambientales para detectar
+            contradicciones, riesgos y conflictos regulatorios.
           </p>
         </div>
         <div class="status-pill">
           <span class="dot"></span>
-          Live Audit Pipeline
+          Auditoría en vivo
         </div>
       </header>
 
-      <section class="kpi-row">
-        <div class="kpi">
-          <span class="kpi-label">Risk Score</span>
-          <div class="kpi-value" id="kpiRisk">0</div>
-          <span class="kpi-note">Composite risk index</span>
+      <section class="status-row">
+        <div class="status-card">
+          <span>Estado general</span>
+          <strong id="summaryStatus">Estable</strong>
         </div>
-        <div class="kpi">
-          <span class="kpi-label">Active Alerts</span>
-          <div class="kpi-value" id="kpiAlerts">0</div>
-          <span class="kpi-note">Critical or review flags</span>
+        <div class="status-card">
+          <span>Riesgo</span>
+          <strong id="kpiRisk">0</strong>
+        </div>
+        <div class="status-card">
+          <span>Alertas</span>
+          <strong id="kpiAlerts">0</strong>
         </div>
       </section>
 
-      <main class="grid">
-        <section class="panel intake">
+      <main class="flow">
+        <section class="panel">
           <div class="panel-header">
-            <h2>Project Intake</h2>
-            <span class="tag">Step 1</span>
+            <h2>1. Ingreso del proyecto</h2>
+            <span class="tag">Paso 1</span>
           </div>
 
           <div class="card upload-zone" id="uploadZone">
             <input id="fileInput" type="file" accept=".pdf,.txt" />
             <div>
-              <h3>Upload Study File</h3>
-              <p>.pdf or .txt supported</p>
-              <button class="ghost" type="button" id="chooseFileBtn">Select File</button>
+              <h3>Subir estudio</h3>
+              <p>Formato .pdf o .txt</p>
+              <button class="ghost" type="button" id="chooseFileBtn">Seleccionar archivo</button>
             </div>
           </div>
 
           <form class="card form" id="intakeForm">
             <label>
-              Project Name
+              Nombre del proyecto
               <input type="text" id="projectName" placeholder="Aurora Basin Upgrade" />
             </label>
             <label>
-              Industry
+              Industria
               <select id="industry">
-                <option>Mining</option>
-                <option>Real Estate</option>
-                <option>Energy</option>
-                <option>Infrastructure</option>
-                <option>Manufacturing</option>
+                <option>Minería</option>
+                <option>Inmobiliario</option>
+                <option>Energía</option>
+                <option>Infraestructura</option>
+                <option>Manufactura</option>
               </select>
             </label>
             <label>
-              Coordinates (Lat, Lng)
+              Coordenadas (Lat, Lng)
               <div class="row">
                 <input type="number" step="0.0001" id="lat" placeholder="29.7629" />
                 <input type="number" step="0.0001" id="lng" placeholder="-95.3677" />
               </div>
             </label>
             <label>
-              Scenario
+              Escenario
               <select id="scenario">
-                <option>Mining</option>
-                <option>Real Estate</option>
-                <option>Energy</option>
+                <option>Minería</option>
+                <option>Inmobiliario</option>
+                <option>Energía</option>
               </select>
             </label>
-            <label>
-              Project Claims
-              <textarea id="claims" rows="4" placeholder="Example: The project maintains Neutral Impact across hydrological systems."></textarea>
-            </label>
-            <label>
-              Engineering Specs
-              <textarea id="specs" rows="4" placeholder="Example: Resource Extraction / Discharge in Phase 2."></textarea>
-            </label>
-            <button type="button" class="primary" id="runAuditBtn">Run Audit</button>
+
+            <details class="details">
+              <summary>Ver detalles técnicos (claims/specs)</summary>
+              <div class="details-body">
+                <label>
+                  Claims del estudio
+                  <textarea id="claims" rows="4" placeholder="Ej: El proyecto mantiene Impacto Neutral en sistemas hídricos."></textarea>
+                </label>
+                <label>
+                  Especificaciones de ingeniería
+                  <textarea id="specs" rows="4" placeholder="Ej: Extracción de recursos / descarga en Fase 2."></textarea>
+                </label>
+              </div>
+            </details>
+
+            <button type="button" class="primary" id="runAuditBtn">Ejecutar auditoría</button>
           </form>
         </section>
 
-        <section class="panel core">
+        <section class="panel">
           <div class="panel-header">
-            <h2>Geospatial Overview</h2>
-            <span class="tag">Step 2</span>
+            <h2>2. Mapa y contexto</h2>
+            <span class="tag">Paso 2</span>
           </div>
 
           <div class="card map-card">
             <div class="map-toolbar">
-              <span>Layers</span>
+              <span>Capas</span>
               <label class="switch">
                 <input type="checkbox" id="layerBoundary" checked />
-                <span>Project Boundary</span>
+                <span>Límite del proyecto</span>
               </label>
               <label class="switch">
                 <input type="checkbox" id="layerHydro" checked />
-                <span>Hydrographic Network</span>
+                <span>Red hidrográfica</span>
               </label>
               <label class="switch">
                 <input type="checkbox" id="layerVegetation" checked />
-                <span>Protected Vegetation</span>
+                <span>Vegetación protegida</span>
               </label>
             </div>
             <div id="map" class="map">
               <div class="map-placeholder">
                 <div>
-                  <h3>Satellite / Terrain View</h3>
+                  <h3>Vista satelital</h3>
                   <p>
-                    Add a Google Maps API key via
-                    <span class="mono">?maps_key=YOUR_KEY</span> to enable live
-                    satellite imagery.
+                    Agrega tu clave con
+                    <span class="mono">?maps_key=TU_KEY</span> para activar el mapa.
                   </p>
                 </div>
               </div>
@@ -132,69 +140,14 @@
               <div class="layer vegetation"></div>
             </div>
             <div class="legend">
-              <div><span class="swatch boundary"></span> Project Boundary</div>
-              <div><span class="swatch hydro"></span> Hydrographic Network</div>
-              <div><span class="swatch vegetation"></span> Vegetation Heatmap</div>
-            </div>
-            <p class="map-note">Satellite basemap powered by Google Maps when a key is provided.</p>
-          </div>
-
-          <div class="card results">
-            <div class="results-header">
-              <div>
-                <h3>Findings</h3>
-                <p class="muted">Key discrepancies and legal triggers.</p>
-              </div>
-              <button class="secondary" id="exportBtn">Generate Correction Roadmap</button>
-            </div>
-            <div class="inconsistency" id="inconsistencyCard">
-              <div class="inconsistency-header">
-                <h4>Inconsistency Card</h4>
-                <span class="chip" id="severityChip">Stable</span>
-              </div>
-              <div class="row-block">
-                <span class="label">Claimed Statement</span>
-                <p id="claimedText">Awaiting project claims.</p>
-              </div>
-              <div class="row-block">
-                <span class="label">Technical Reality</span>
-                <p id="realityText">Awaiting engineering specs.</p>
-              </div>
-              <div class="row-block">
-                <span class="label">Legal Conflict</span>
-                <p id="legalText">No conflicts detected.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel summary">
-          <div class="panel-header">
-            <h2>Audit Summary</h2>
-            <span class="tag" id="summaryStatus">Stable</span>
-          </div>
-
-          <div class="card summary-card">
-            <div class="gauge" id="riskGauge">
-              <div class="gauge-inner">
-                <span class="gauge-value" id="riskValue">0</span>
-                <span class="gauge-label">Risk Score</span>
-              </div>
-            </div>
-            <div class="summary-metrics">
-              <div>
-                <span>Regulatory anchors</span>
-                <strong id="kpiAnchors">0</strong>
-              </div>
-              <div>
-                <span>Spatial overlaps</span>
-                <strong id="kpiOverlaps">0</strong>
-              </div>
+              <div><span class="swatch boundary"></span> Límite del proyecto</div>
+              <div><span class="swatch hydro"></span> Red hidrográfica</div>
+              <div><span class="swatch vegetation"></span> Vegetación</div>
             </div>
           </div>
 
           <div class="card context-card">
-            <h4>Environmental Conditions</h4>
+            <h4>Condiciones ambientales</h4>
             <div class="context-grid">
               <div>
                 <span>AQI</span>
@@ -207,43 +160,85 @@
                 <small id="envPm25Units"></small>
               </div>
               <div>
-                <span>Temperature</span>
+                <span>Temperatura</span>
                 <strong id="envTemp">--</strong>
                 <small id="envFeelsLike"></small>
               </div>
               <div>
-                <span>Humidity</span>
+                <span>Humedad</span>
                 <strong id="envHumidity">--</strong>
                 <small id="envCondition"></small>
               </div>
             </div>
-            <p class="context-note" id="envNote">Source: Google Air Quality & Weather</p>
+            <p class="context-note" id="envNote">Fuente: Google Air Quality & Weather</p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>3. Resultados</h2>
+            <span class="tag">Paso 3</span>
+          </div>
+
+          <div class="card result-hero">
+            <div class="gauge" id="riskGauge">
+              <div class="gauge-inner">
+                <span class="gauge-value" id="riskValue">0</span>
+                <span class="gauge-label">Riesgo</span>
+              </div>
+            </div>
+            <div>
+              <h3 id="resultHeadline">Sin inconsistencias críticas</h3>
+              <p class="muted" id="resultSummary">Ejecuta la auditoría para ver los hallazgos.</p>
+              <div class="result-actions">
+                <button class="secondary" id="exportBtn">Generar hoja de corrección</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card inconsistency" id="inconsistencyCard">
+            <div class="inconsistency-header">
+              <h4>Conflicto detectado</h4>
+              <span class="chip" id="severityChip">Estable</span>
+            </div>
+            <div class="row-block">
+              <span class="label">Lo que declara el estudio</span>
+              <p id="claimedText">—</p>
+            </div>
+            <div class="row-block">
+              <span class="label">Lo que muestran los datos</span>
+              <p id="realityText">—</p>
+            </div>
+            <div class="row-block">
+              <span class="label">Conflicto legal</span>
+              <p id="legalText">—</p>
+            </div>
           </div>
 
           <details class="card log-details" open>
-            <summary>Audit Log (live)</summary>
+            <summary>Razonamiento del sistema</summary>
             <div class="terminal" id="terminal">
-              <div class="terminal-line muted">Awaiting audit execution...</div>
+              <div class="terminal-line muted">Esperando ejecución...</div>
             </div>
           </details>
 
           <details class="card details">
-            <summary>Technical Trace</summary>
+            <summary>Detalle técnico</summary>
             <div class="flow">
               <div class="flow-node">
-                <strong>Projects</strong>
+                <strong>Ingreso</strong>
                 <span>Project Manager</span>
               </div>
               <div class="flow-node">
-                <strong>Maps</strong>
+                <strong>Mapa</strong>
                 <span>GeoJSON Layer</span>
               </div>
               <div class="flow-node">
-                <strong>Analysis</strong>
+                <strong>IA</strong>
                 <span>GPT Reasoning</span>
               </div>
               <div class="flow-node">
-                <strong>Reports</strong>
+                <strong>Reporte</strong>
                 <span>Correction Roadmap</span>
               </div>
             </div>
@@ -252,8 +247,7 @@
       </main>
 
       <footer class="footer">
-        Demo-only environment. Regulatory and geospatial signals are simulated
-        until connected to live data sources.
+        Demo con señales simuladas hasta conectar fuentes regulatorias y GIS reales.
       </footer>
     </div>
 

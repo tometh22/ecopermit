@@ -42,6 +42,8 @@ const elements = {
   legalText: document.getElementById("legalText"),
   severityChip: document.getElementById("severityChip"),
   summaryStatus: document.getElementById("summaryStatus"),
+  resultHeadline: document.getElementById("resultHeadline"),
+  resultSummary: document.getElementById("resultSummary"),
   layerBoundary: document.getElementById("layerBoundary"),
   layerHydro: document.getElementById("layerHydro"),
   layerVegetation: document.getElementById("layerVegetation"),
@@ -153,7 +155,7 @@ const setEnvironment = (environment) => {
     elements.envHumidity.textContent = "--";
     elements.envCondition.textContent = "";
     if (elements.envNote) {
-      elements.envNote.textContent = "Source: Google Air Quality & Weather";
+      elements.envNote.textContent = "Fuente: Google Air Quality & Weather";
     }
     return;
   }
@@ -172,46 +174,73 @@ const setEnvironment = (environment) => {
   elements.envPm25.textContent = Number.isFinite(pm25) ? `${pm25}` : "--";
   elements.envPm25Units.textContent = pm25Units ? String(pm25Units).replace(/_/g, " ").toLowerCase() : "";
   elements.envTemp.textContent = Number.isFinite(temp) ? `${temp}°C` : "--";
-  elements.envFeelsLike.textContent = Number.isFinite(feelsLike) ? `Feels like ${feelsLike}°C` : "";
+  elements.envFeelsLike.textContent = Number.isFinite(feelsLike) ? `Sensación ${feelsLike}°C` : "";
   elements.envHumidity.textContent = Number.isFinite(humidity) ? `${humidity}%` : "--";
   elements.envCondition.textContent = condition || "";
 
   if (elements.envNote) {
     if (environment.errors && environment.errors.length) {
-      elements.envNote.textContent = `Context partial: ${environment.errors.join(" | ")}`;
+      elements.envNote.textContent = `Contexto parcial: ${environment.errors.join(" | ")}`;
     } else if (environment.fetchedAt) {
-      elements.envNote.textContent = `Updated ${new Date(environment.fetchedAt).toLocaleTimeString()}`;
+      elements.envNote.textContent = `Actualizado ${new Date(environment.fetchedAt).toLocaleTimeString()}`;
     }
   }
 };
 
 const setLoading = (loading) => {
   elements.runAuditBtn.disabled = loading;
-  elements.runAuditBtn.textContent = loading ? "Running Audit..." : "Run Audit";
+  elements.runAuditBtn.textContent = loading ? "Ejecutando..." : "Ejecutar auditoría";
+};
+
+const updateResultSummary = (analysis) => {
+  if (!elements.resultHeadline || !elements.resultSummary) {
+    return;
+  }
+
+  if (!analysis) {
+    elements.resultHeadline.textContent = "Sin inconsistencias críticas";
+    elements.resultSummary.textContent = "Ejecuta la auditoría para ver los hallazgos.";
+    return;
+  }
+
+  if (analysis.inconsistency?.severity === "CRITICAL_ALERT") {
+    elements.resultHeadline.textContent = "Alerta crítica detectada";
+    elements.resultSummary.textContent = "Existe una contradicción material entre el estudio y la realidad técnica.";
+    return;
+  }
+
+  if (analysis.inconsistency) {
+    elements.resultHeadline.textContent = "Revisión recomendada";
+    elements.resultSummary.textContent = "Hay señales que requieren validación antes de presentar el estudio.";
+    return;
+  }
+
+  elements.resultHeadline.textContent = "Sin inconsistencias críticas";
+  elements.resultSummary.textContent = "No se detectaron conflictos automáticos en la auditoría.";
 };
 
 const buildRoadmap = (analysis) => {
   if (!analysis) {
-    return "Run an audit to generate the correction roadmap.";
+    return "Ejecuta una auditoría para generar la hoja de corrección.";
   }
 
   const lines = [
-    "Correction Roadmap",
+    "Hoja de Corrección",
     "===================",
-    `Project: ${elements.projectName.value || "Untitled"}`,
-    `Industry: ${elements.industry.value}`,
-    `Scenario: ${elements.scenario.value}`,
+    `Proyecto: ${elements.projectName.value || "Sin título"}`,
+    `Industria: ${elements.industry.value}`,
+    `Escenario: ${elements.scenario.value}`,
     "",
-    "Priority Actions:",
-    `1. Verify claims language: ${analysis.inconsistency?.claimed || "N/A"}`,
-    "2. Align engineering specs with environmental impact limits.",
-    `3. Address regulatory references: ${(analysis.regulatoryRefs || []).join("; ")}`,
-    `4. Resolve geospatial conflicts: ${analysis.zoneSummary || "No overlaps detected."}`,
+    "Acciones prioritarias:",
+    `1. Verificar claims: ${analysis.inconsistency?.claimed || "N/A"}`,
+    "2. Alinear specs con límites ambientales.",
+    `3. Revisar normativa: ${(analysis.regulatoryRefs || []).join("; ")}`,
+    `4. Resolver conflictos geoespaciales: ${analysis.zoneSummary || "Sin cruces detectados."}`,
     "",
-    "Submission Checklist:",
-    "- Updated impact narrative",
-    "- Revised mitigation plan",
-    "- Evidence of remediation commitments",
+    "Checklist de entrega:",
+    "- Impacto actualizado",
+    "- Plan de mitigación",
+    "- Evidencia documental",
   ];
 
   return lines.join("\n");
@@ -225,6 +254,7 @@ const updateUI = (analysis) => {
   setGauge(analysis.riskScore || 0);
   setKpis(analysis);
   setEnvironment(analysis.environment);
+  updateResultSummary(analysis);
 
   if (analysis.inconsistency) {
     elements.claimedText.textContent = analysis.inconsistency.claimed;
@@ -232,31 +262,31 @@ const updateUI = (analysis) => {
     elements.legalText.textContent = analysis.inconsistency.legal;
 
     if (analysis.inconsistency.severity === "CRITICAL_ALERT") {
-      elements.severityChip.textContent = "Critical";
+      elements.severityChip.textContent = "Crítico";
       elements.severityChip.classList.add("alert");
       if (elements.summaryStatus) {
-        elements.summaryStatus.textContent = "Critical";
+        elements.summaryStatus.textContent = "Crítico";
       }
     } else {
-      elements.severityChip.textContent = "Review";
+      elements.severityChip.textContent = "Revisión";
       elements.severityChip.classList.remove("alert");
       if (elements.summaryStatus) {
-        elements.summaryStatus.textContent = "Review";
+        elements.summaryStatus.textContent = "Revisión";
       }
     }
   } else {
-    elements.claimedText.textContent = "Awaiting project claims.";
-    elements.realityText.textContent = "Awaiting engineering specs.";
-    elements.legalText.textContent = "No conflicts detected.";
-    elements.severityChip.textContent = "Stable";
+    elements.claimedText.textContent = "—";
+    elements.realityText.textContent = "—";
+    elements.legalText.textContent = "—";
+    elements.severityChip.textContent = "Estable";
     elements.severityChip.classList.remove("alert");
     if (elements.summaryStatus) {
-      elements.summaryStatus.textContent = "Stable";
+      elements.summaryStatus.textContent = "Estable";
     }
   }
 
   if (analysis.llmSummary) {
-    appendLog("GPT_Reasoning_Engine", analysis.llmSummary);
+    appendLog("GPT", analysis.llmSummary);
   }
 };
 
@@ -280,7 +310,7 @@ const createProject = async () => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || "Failed to create project.");
+    throw new Error(errorText || "Error al crear el proyecto.");
   }
 
   const payload = await response.json();
@@ -296,7 +326,7 @@ const createAudit = async (projectId) => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || "Failed to create audit.");
+    throw new Error(errorText || "Error al ejecutar la auditoría.");
   }
 
   const payload = await response.json();
@@ -338,7 +368,7 @@ const streamAudit = (audit, onComplete) => {
     activeStream = null;
 
     if (received === 0 && Array.isArray(audit.logs)) {
-      appendLog("System", "Live stream unavailable. Replaying cached logs.");
+      appendLog("Sistema", "Stream no disponible. Reproduciendo logs.");
       const fallback = audit.logs.map((log) => ({ ...log, delay: 240 }));
       enqueueLogs(fallback, () => {
         updateUI(audit.analysis);
@@ -349,7 +379,7 @@ const streamAudit = (audit, onComplete) => {
       return;
     }
 
-    appendLog("System", "Stream interrupted.");
+    appendLog("Sistema", "Stream interrumpido.");
     updateUI(audit.analysis);
     if (onComplete) {
       onComplete();
@@ -360,16 +390,16 @@ const streamAudit = (audit, onComplete) => {
 const runAudit = async () => {
   setLoading(true);
   resetTerminal();
-  appendLog("System", `Connecting to ${API_BASE_URL}...`);
+  appendLog("Sistema", `Conectando a ${API_BASE_URL}...`);
 
   try {
     const project = await createProject();
-    appendLog("System", `Project created: ${project.id}.`);
+    appendLog("Sistema", `Proyecto creado: ${project.id}.`);
     const audit = await createAudit(project.id);
     lastAnalysis = audit.analysis;
     streamAudit(audit, () => setLoading(false));
   } catch (error) {
-    appendLog("System", `Error: ${error.message}`);
+    appendLog("Sistema", `Error: ${error.message}`);
     setLoading(false);
   }
 };
@@ -379,16 +409,16 @@ const exportRoadmap = () => {
   const roadmapWindow = window.open("", "_blank");
 
   if (!roadmapWindow) {
-    alert("Pop-up blocked. Please allow pop-ups to export the roadmap.");
+    alert("El navegador bloqueó la ventana emergente.");
     return;
   }
 
   const html = `
     <!doctype html>
-    <html lang="en">
+    <html lang="es">
     <head>
       <meta charset="UTF-8" />
-      <title>Correction Roadmap</title>
+      <title>Hoja de Corrección</title>
       <style>
         body { font-family: "Space Grotesk", Arial, sans-serif; padding: 32px; }
         h1 { margin-top: 0; }
@@ -396,9 +426,9 @@ const exportRoadmap = () => {
       </style>
     </head>
     <body>
-      <h1>Correction Roadmap</h1>
+      <h1>Hoja de Corrección</h1>
       <pre>${roadmap.replace(/</g, "&lt;")}</pre>
-      <p>Use your browser's Print command to save as PDF.</p>
+      <p>Usa la opción Imprimir para guardar PDF.</p>
     </body>
     </html>
   `;
@@ -463,7 +493,7 @@ const initMap = () => {
     new window.google.maps.Marker({
       position: center,
       map,
-      title: "Project Boundary",
+      title: "Proyecto",
     });
 
     const placeholder = elements.map.querySelector(".map-placeholder");
@@ -487,3 +517,4 @@ initMap();
 setGauge(0);
 setKpis(null);
 setEnvironment(null);
+updateResultSummary(null);
