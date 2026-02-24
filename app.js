@@ -35,6 +35,10 @@ const elements = {
   layerHydro: document.getElementById("layerHydro"),
   layerVegetation: document.getElementById("layerVegetation"),
   map: document.getElementById("map"),
+  kpiRisk: document.getElementById("kpiRisk"),
+  kpiAlerts: document.getElementById("kpiAlerts"),
+  kpiAnchors: document.getElementById("kpiAnchors"),
+  kpiOverlaps: document.getElementById("kpiOverlaps"),
 };
 
 const mapLayers = {
@@ -106,6 +110,14 @@ const setGauge = (value) => {
   elements.riskGauge.style.setProperty("--risk-color", color);
 };
 
+const setKpis = (analysis) => {
+  elements.kpiRisk.textContent = analysis?.riskScore ?? 0;
+  const hasAlert = analysis?.inconsistency?.severity === "CRITICAL_ALERT";
+  elements.kpiAlerts.textContent = hasAlert ? 1 : analysis?.inconsistency ? 1 : 0;
+  elements.kpiAnchors.textContent = analysis?.regulatoryRefs?.length || 0;
+  elements.kpiOverlaps.textContent = analysis?.overlaps?.length || 0;
+};
+
 const setLoading = (loading) => {
   elements.runAuditBtn.disabled = loading;
   elements.runAuditBtn.textContent = loading ? "Running Audit..." : "Run Audit";
@@ -144,6 +156,7 @@ const updateUI = (analysis) => {
   }
 
   setGauge(analysis.riskScore || 0);
+  setKpis(analysis);
 
   if (analysis.inconsistency) {
     elements.claimedText.textContent = analysis.inconsistency.claimed;
@@ -392,3 +405,4 @@ initLayerControls();
 bindEvents();
 initMap();
 setGauge(0);
+setKpis(null);

@@ -11,10 +11,10 @@
       <header class="topbar">
         <div>
           <div class="eyebrow">Forensic Environmental Auditor</div>
-          <h1>Discrepancy Detection Between Project Claims and Regulations</h1>
+          <h1>Environmental Audit Command Center</h1>
           <p class="subtitle">
-            Generic demo system for auditing project submissions against global
-            environmental requirements.
+            Enterprise-grade discrepancy detection between project claims,
+            engineering reality, and regulatory frameworks.
           </p>
         </div>
         <div class="status-pill">
@@ -23,11 +23,34 @@
         </div>
       </header>
 
+      <section class="kpi-row">
+        <div class="kpi">
+          <span class="kpi-label">Risk Score</span>
+          <div class="kpi-value" id="kpiRisk">0</div>
+          <span class="kpi-note">Composite risk index</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Active Alerts</span>
+          <div class="kpi-value" id="kpiAlerts">0</div>
+          <span class="kpi-note">Critical or review flags</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Regulatory Anchors</span>
+          <div class="kpi-value" id="kpiAnchors">0</div>
+          <span class="kpi-note">Matched legal references</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Spatial Overlaps</span>
+          <div class="kpi-value" id="kpiOverlaps">0</div>
+          <span class="kpi-note">Restricted zones intersected</span>
+        </div>
+      </section>
+
       <main class="grid">
         <section class="panel intake">
           <div class="panel-header">
             <h2>Project Intake</h2>
-            <span class="tag">Projects · Project_Manager_Agent</span>
+            <span class="tag">Project Manager</span>
           </div>
 
           <div class="card upload-zone" id="uploadZone">
@@ -84,7 +107,7 @@
         <section class="panel core">
           <div class="panel-header">
             <h2>Geospatial Core</h2>
-            <span class="tag">Maps · GeoJSON_Layer_Controller</span>
+            <span class="tag">Operational View</span>
           </div>
 
           <div class="card map-card">
@@ -125,34 +148,12 @@
             </div>
           </div>
 
-          <div class="card flow-card">
-            <div class="flow-header">
-              <h3>AntiGravity Dataflow</h3>
-              <p>Interconnected modules for demo impact.</p>
-            </div>
-            <div class="flow">
-              <div class="flow-node">
-                <strong>Projects</strong>
-                <span>Project_Manager_Agent</span>
-              </div>
-              <div class="flow-node">
-                <strong>Maps</strong>
-                <span>GeoJSON_Layer_Controller</span>
-              </div>
-              <div class="flow-node">
-                <strong>Analysis</strong>
-                <span>Gemini_Reasoning_Engine</span>
-              </div>
-              <div class="flow-node">
-                <strong>Reports</strong>
-                <span>Automated_PDF_Generator</span>
-              </div>
-            </div>
-          </div>
-
           <div class="card results">
             <div class="results-header">
-              <h3>Audit Output</h3>
+              <div>
+                <h3>Audit Output</h3>
+                <p class="muted">Key discrepancies and compliance triggers.</p>
+              </div>
               <button class="secondary" id="exportBtn">Generate Correction Roadmap</button>
             </div>
             <div class="results-grid">
@@ -188,12 +189,34 @@
               </div>
             </div>
           </div>
+
+          <details class="card details">
+            <summary>Technical Trace: AntiGravity Dataflow</summary>
+            <div class="flow">
+              <div class="flow-node">
+                <strong>Projects</strong>
+                <span>Project_Manager_Agent</span>
+              </div>
+              <div class="flow-node">
+                <strong>Maps</strong>
+                <span>GeoJSON_Layer_Controller</span>
+              </div>
+              <div class="flow-node">
+                <strong>Analysis</strong>
+                <span>GPT_Reasoning_Engine</span>
+              </div>
+              <div class="flow-node">
+                <strong>Reports</strong>
+                <span>Automated_PDF_Generator</span>
+              </div>
+            </div>
+          </details>
         </section>
 
         <section class="panel feed">
           <div class="panel-header">
             <h2>AI Audit Feed</h2>
-            <span class="tag">Analysis · Gemini_Reasoning_Engine</span>
+            <span class="tag">Live Reasoning</span>
           </div>
           <div class="terminal" id="terminal">
             <div class="terminal-line muted">Awaiting audit execution...</div>

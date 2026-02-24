@@ -43,7 +43,7 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 
 .eyebrow {
@@ -55,8 +55,8 @@ body {
 }
 
 h1 {
-  font-size: 32px;
-  margin: 0 0 12px;
+  font-size: 30px;
+  margin: 0 0 10px;
 }
 
 .subtitle {
@@ -85,9 +85,44 @@ h1 {
   box-shadow: 0 0 12px var(--accent);
 }
 
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.kpi {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.kpi-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .grid {
   display: grid;
-  grid-template-columns: 1.1fr 2fr 1.1fr;
+  grid-template-columns: 1.05fr 2.1fr 1fr;
   gap: 20px;
 }
 
@@ -325,61 +360,6 @@ button.ghost {
   background: rgba(126, 242, 157, 0.5);
 }
 
-.flow-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.flow-header h3 {
-  margin: 0;
-}
-
-.flow-header p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.flow {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-
-.flow-node {
-  background: var(--surface-2);
-  border-radius: 12px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--muted);
-  position: relative;
-  animation: rise 0.6s ease both;
-}
-
-.flow-node strong {
-  color: var(--text);
-  font-size: 13px;
-}
-
-.flow-node::after {
-  content: "";
-  position: absolute;
-  right: -6px;
-  top: 50%;
-  width: 12px;
-  height: 2px;
-  background: var(--border);
-}
-
-.flow-node:last-child::after {
-  display: none;
-}
-
 .results {
   display: flex;
   flex-direction: column;
@@ -390,6 +370,13 @@ button.ghost {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.results-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .results-grid {
@@ -501,12 +488,66 @@ button.ghost {
   letter-spacing: 0.12em;
 }
 
+.details {
+  padding: 12px 16px;
+}
+
+.details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.details[open] summary {
+  margin-bottom: 12px;
+}
+
+.flow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.flow-node {
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  position: relative;
+  animation: rise 0.6s ease both;
+}
+
+.flow-node strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.flow-node::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  width: 12px;
+  height: 2px;
+  background: var(--border);
+}
+
+.flow-node:last-child::after {
+  display: none;
+}
+
 .terminal {
   background: #0b0f14;
   border-radius: 14px;
   padding: 14px;
   border: 1px solid #1c2432;
-  min-height: 560px;
+  min-height: 520px;
   max-height: 660px;
   overflow-y: auto;
   font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
@@ -575,6 +616,10 @@ button.ghost {
   .terminal {
     min-height: 320px;
   }
+
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 640px) {
@@ -587,6 +632,10 @@ button.ghost {
   }
 
   .upload-zone {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-row {
     grid-template-columns: 1fr;
   }
 }
