@@ -29,6 +29,7 @@ const createProject = (payload) => {
   const db = loadDb();
   const project = {
     id: randomUUID(),
+    caseId: payload.caseId || "",
     name: payload.name || "",
     industry: payload.industry || "",
     scenario: payload.scenario || "",

@@ -21,6 +21,14 @@ index.html?api=https://your-api.example.com
 
 This saves the API base URL in `localStorage` for future sessions.
 
+## Demo Cases
+
+Load the Lawen demo dataset (based on press sources) with:
+
+```
+index.html?case=lawen
+```
+
 ## Google Maps (Satellite)
 
 Provide a Google Maps JavaScript API key at runtime:
@@ -41,6 +49,14 @@ GOOGLE_ENV_CACHE_MS=600000
 ```
 
 The key stays server-side. Only the frontend map uses the `maps_key` query param.
+
+## Satellite Evidence (Demo)
+
+Satellite evidence is currently simulated in demo mode. Configure with:
+
+```
+SATELLITE_MODE=demo
+```
 
 ## Demo Logic
 

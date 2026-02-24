@@ -22,11 +22,63 @@ const resolveApiBaseUrl = () => {
 
 const API_BASE_URL = resolveApiBaseUrl().replace(/\/$/, "");
 
+const DEMO_CASES = {
+  lawen: {
+    id: "lawen",
+    name: "Lawen - Bosque y Mar (demo prensa)",
+    industry: "Inmobiliario",
+    scenario: "Inmobiliario",
+    coordinates: { lat: -38.087682, lng: -57.582513 },
+    area_m2: 724660.04,
+    perimeter_m: 3910,
+    claims:
+      "El estudio declara un buffer de 15 m a cada lado del arroyo y sostiene que el proyecto preserva el equilibrio ambiental del bosque.",
+    specs:
+      "Se proyectan desagües con descarga al arroyo, planta de tratamiento propia y consumo de agua estimado en 285 m³/día.",
+    regulatoryRefs: [
+      "Ley 13.273 - Bosques Protectores (petitorio vecinal)",
+      "Solicitud de DIA negativa y modelado hidrológico",
+      "Buffer hídrico de 15 m a cada lado del arroyo (según prensa)",
+    ],
+    sources: [
+      {
+        title: "Lawen: barrio privado en bosque con arroyo",
+        url: "https://quedigital.com.ar/sociedad/lawen-un-barrio-privado-mas-en-medio-de-un-bosque-y-atravesado-por-un-arroyo/",
+      },
+      {
+        title: "Piden declarar inviable el proyecto Lawen",
+        url: "https://quedigital.com.ar/sociedad/lawen-piden-que-se-declare-inviable-el-barrio-privado-en-el-bosque-peralta-ramos/",
+      },
+    ],
+  },
+};
+
+const resolveCaseId = () => {
+  const params = new URLSearchParams(window.location.search);
+  const param = params.get("case");
+  if (!param) {
+    return "";
+  }
+  const key = param.toLowerCase();
+  return DEMO_CASES[key] ? key : "";
+};
+
+const state = {
+  caseId: resolveCaseId(),
+  caseData: null,
+  map: null,
+  mapMarker: null,
+  mapPolygon: null,
+  pendingMap: null,
+};
+
 const elements = {
   fileInput: document.getElementById("fileInput"),
   chooseFileBtn: document.getElementById("chooseFileBtn"),
   runAuditBtn: document.getElementById("runAuditBtn"),
   exportBtn: document.getElementById("exportBtn"),
+  loadLawenBtn: document.getElementById("loadLawenBtn"),
+  caseBadge: document.getElementById("caseBadge"),
   claims: document.getElementById("claims"),
   specs: document.getElementById("specs"),
   lat: document.getElementById("lat"),
@@ -61,6 +113,18 @@ const elements = {
   envHumidity: document.getElementById("envHumidity"),
   envCondition: document.getElementById("envCondition"),
   envNote: document.getElementById("envNote"),
+  satWater: document.getElementById("satWater"),
+  satWaterNote: document.getElementById("satWaterNote"),
+  satLand: document.getElementById("satLand"),
+  satLandNote: document.getElementById("satLandNote"),
+  satHydro: document.getElementById("satHydro"),
+  satHydroNote: document.getElementById("satHydroNote"),
+  satVegetation: document.getElementById("satVegetation"),
+  satVegetationNote: document.getElementById("satVegetationNote"),
+  satSource: document.getElementById("satSource"),
+  regulatoryList: document.getElementById("regulatoryList"),
+  overlapList: document.getElementById("overlapList"),
+  sourcesList: document.getElementById("sourcesList"),
 };
 
 const mapLayers = {
@@ -136,8 +200,12 @@ const setKpis = (analysis) => {
   elements.kpiRisk.textContent = analysis?.riskScore ?? 0;
   const hasAlert = analysis?.inconsistency?.severity === "CRITICAL_ALERT";
   elements.kpiAlerts.textContent = hasAlert ? 1 : analysis?.inconsistency ? 1 : 0;
-  elements.kpiAnchors.textContent = analysis?.regulatoryRefs?.length || 0;
-  elements.kpiOverlaps.textContent = analysis?.overlaps?.length || 0;
+  if (elements.kpiAnchors) {
+    elements.kpiAnchors.textContent = analysis?.regulatoryRefs?.length || 0;
+  }
+  if (elements.kpiOverlaps) {
+    elements.kpiOverlaps.textContent = analysis?.overlaps?.length || 0;
+  }
 };
 
 const setEnvironment = (environment) => {
@@ -185,6 +253,209 @@ const setEnvironment = (environment) => {
       elements.envNote.textContent = `Actualizado ${new Date(environment.fetchedAt).toLocaleTimeString()}`;
     }
   }
+};
+
+const setSatelliteEvidence = (evidence) => {
+  if (!elements.satWater) {
+    return;
+  }
+
+  if (!evidence) {
+    elements.satWater.textContent = "--";
+    elements.satWaterNote.textContent = "";
+    elements.satLand.textContent = "--";
+    elements.satLandNote.textContent = "";
+    elements.satHydro.textContent = "--";
+    elements.satHydroNote.textContent = "";
+    elements.satVegetation.textContent = "--";
+    elements.satVegetationNote.textContent = "";
+    if (elements.satSource) {
+      elements.satSource.textContent = "Fuente: integrar datasets satelitales.";
+    }
+    return;
+  }
+
+  elements.satWater.textContent = evidence.water?.value || "--";
+  elements.satWaterNote.textContent = evidence.water?.detail || "";
+  elements.satLand.textContent = evidence.landCover?.value || "--";
+  elements.satLandNote.textContent = evidence.landCover?.detail || "";
+  elements.satHydro.textContent = evidence.hydrology?.value || "--";
+  elements.satHydroNote.textContent = evidence.hydrology?.detail || "";
+  elements.satVegetation.textContent = evidence.vegetation?.value || "--";
+  elements.satVegetationNote.textContent = evidence.vegetation?.detail || "";
+  if (elements.satSource) {
+    elements.satSource.textContent = evidence.source
+      ? `Fuente: ${evidence.source}`
+      : "Fuente: integración satelital pendiente.";
+  }
+};
+
+const setRegulatoryAnchors = (analysis) => {
+  if (!elements.regulatoryList || !elements.overlapList) {
+    return;
+  }
+
+  const anchors = analysis?.regulatoryRefs || [];
+  const overlaps = analysis?.overlaps || [];
+
+  elements.regulatoryList.innerHTML = anchors.length
+    ? anchors.map((item) => `<div class="pill">${item}</div>`).join("")
+    : "<div class=\"muted\">Sin referencias cargadas.</div>";
+
+  elements.overlapList.innerHTML = overlaps.length
+    ? overlaps.map((item) => `<div class="pill warn">${item.type}: ${item.name}</div>`).join("")
+    : "<div class=\"muted\">Sin solapamientos detectados.</div>";
+};
+
+const setSources = (sources) => {
+  if (!elements.sourcesList) {
+    return;
+  }
+
+  if (!sources || sources.length === 0) {
+    elements.sourcesList.innerHTML = "<div class=\"muted\">Sin fuentes cargadas.</div>";
+    return;
+  }
+
+  elements.sourcesList.innerHTML = sources
+    .map(
+      (source) =>
+        `<a href="${source.url}" target="_blank" rel="noreferrer">${source.title}</a>`
+    )
+    .join("");
+};
+
+const metersToLat = (meters) => meters / 111320;
+const metersToLng = (meters, lat) =>
+  meters / (111320 * Math.cos((lat * Math.PI) / 180));
+
+const solveRectangle = (area, perimeter) => {
+  if (!Number.isFinite(area) || !Number.isFinite(perimeter) || area <= 0 || perimeter <= 0) {
+    return { width: 0, height: 0 };
+  }
+  const semi = perimeter / 2;
+  const disc = Math.max(0, semi * semi - 4 * area);
+  const width = (semi + Math.sqrt(disc)) / 2;
+  const height = semi - width;
+  return width >= height ? { width, height } : { width: height, height: width };
+};
+
+const buildRectanglePolygon = ({ center, area, perimeter }) => {
+  if (!center || !Number.isFinite(area) || !Number.isFinite(perimeter)) {
+    return null;
+  }
+  const { width, height } = solveRectangle(area, perimeter);
+  if (!width || !height) {
+    return null;
+  }
+
+  const latHalf = metersToLat(height / 2);
+  const lngHalf = metersToLng(width / 2, center.lat);
+  return [
+    { lat: center.lat + latHalf, lng: center.lng - lngHalf },
+    { lat: center.lat + latHalf, lng: center.lng + lngHalf },
+    { lat: center.lat - latHalf, lng: center.lng + lngHalf },
+    { lat: center.lat - latHalf, lng: center.lng - lngHalf },
+    { lat: center.lat + latHalf, lng: center.lng - lngHalf },
+  ];
+};
+
+const updateMap = ({ center, polygon }) => {
+  if (!center) {
+    return;
+  }
+
+  state.pendingMap = { center, polygon };
+  if (!state.map || !window.google?.maps) {
+    return;
+  }
+
+  state.map.setCenter(center);
+  state.map.setZoom(15);
+
+  if (state.mapMarker) {
+    state.mapMarker.setMap(null);
+  }
+  state.mapMarker = new window.google.maps.Marker({
+    position: center,
+    map: state.map,
+    title: "Proyecto",
+  });
+
+  if (state.mapPolygon) {
+    state.mapPolygon.setMap(null);
+  }
+  if (polygon) {
+    state.mapPolygon = new window.google.maps.Polygon({
+      paths: polygon,
+      strokeColor: "#7ef29d",
+      strokeOpacity: 0.7,
+      strokeWeight: 2,
+      fillColor: "#7ef29d",
+      fillOpacity: 0.15,
+    });
+    state.mapPolygon.setMap(state.map);
+    const bounds = new window.google.maps.LatLngBounds();
+    polygon.forEach((point) => bounds.extend(point));
+    state.map.fitBounds(bounds);
+  }
+
+  const placeholder = elements.map.querySelector(".map-placeholder");
+  if (placeholder) {
+    placeholder.style.display = "none";
+  }
+};
+
+const applyCase = (caseData) => {
+  if (!caseData) {
+    return;
+  }
+  state.caseId = caseData.id;
+  state.caseData = caseData;
+  elements.projectName.value = caseData.name;
+  elements.industry.value = caseData.industry;
+  elements.scenario.value = caseData.scenario;
+  elements.lat.value = caseData.coordinates.lat;
+  elements.lng.value = caseData.coordinates.lng;
+  elements.claims.value = caseData.claims;
+  elements.specs.value = caseData.specs;
+
+  if (elements.caseBadge) {
+    elements.caseBadge.textContent = `Caso demo: ${caseData.name}`;
+  }
+
+  setSources(caseData.sources);
+
+  const polygon = buildRectanglePolygon({
+    center: caseData.coordinates,
+    area: caseData.area_m2,
+    perimeter: caseData.perimeter_m,
+  });
+  updateMap({ center: caseData.coordinates, polygon });
+};
+
+const getCoordinatesFromForm = () => {
+  const lat = Number(elements.lat.value);
+  const lng = Number(elements.lng.value);
+  if (Number.isNaN(lat) || Number.isNaN(lng)) {
+    return null;
+  }
+  return { lat, lng };
+};
+
+const refreshMapFromForm = () => {
+  const coords = getCoordinatesFromForm();
+  if (!coords) {
+    return;
+  }
+  const polygon = state.caseData
+    ? buildRectanglePolygon({
+        center: coords,
+        area: state.caseData.area_m2,
+        perimeter: state.caseData.perimeter_m,
+      })
+    : null;
+  updateMap({ center: coords, polygon });
 };
 
 const setLoading = (loading) => {
@@ -236,6 +507,7 @@ const buildRoadmap = (analysis) => {
     "2. Alinear specs con límites ambientales.",
     `3. Revisar normativa: ${(analysis.regulatoryRefs || []).join("; ")}`,
     `4. Resolver conflictos geoespaciales: ${analysis.zoneSummary || "Sin cruces detectados."}`,
+    `5. Completar evidencia satelital: ${analysis.satelliteEvidence?.source || "Integrar datasets satelitales."}`,
     "",
     "Checklist de entrega:",
     "- Impacto actualizado",
@@ -254,6 +526,8 @@ const updateUI = (analysis) => {
   setGauge(analysis.riskScore || 0);
   setKpis(analysis);
   setEnvironment(analysis.environment);
+  setSatelliteEvidence(analysis.satelliteEvidence);
+  setRegulatoryAnchors(analysis);
   updateResultSummary(analysis);
 
   if (analysis.inconsistency) {
@@ -299,6 +573,7 @@ const createProject = async () => {
   formData.append("lng", elements.lng.value || "");
   formData.append("claims", elements.claims.value || "");
   formData.append("specs", elements.specs.value || "");
+  formData.append("caseId", state.caseId || "");
   if (selectedFile) {
     formData.append("file", selectedFile);
   }
@@ -321,7 +596,7 @@ const createAudit = async (projectId) => {
   const response = await fetch(`${API_BASE_URL}/api/audits`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ projectId }),
+    body: JSON.stringify({ projectId, caseId: state.caseId || "" }),
   });
 
   if (!response.ok) {
@@ -391,6 +666,7 @@ const runAudit = async () => {
   setLoading(true);
   resetTerminal();
   appendLog("Sistema", `Conectando a ${API_BASE_URL}...`);
+  refreshMapFromForm();
 
   try {
     const project = await createProject();
@@ -480,26 +756,32 @@ const initMap = () => {
   script.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}`;
   script.async = true;
   script.onload = () => {
-    const center = { lat: 37.7749, lng: -122.4194 };
-    const map = new window.google.maps.Map(elements.map, {
+    const fallbackCenter = { lat: 37.7749, lng: -122.4194 };
+    const center = state.pendingMap?.center || state.caseData?.coordinates || getCoordinatesFromForm() || fallbackCenter;
+    state.map = new window.google.maps.Map(elements.map, {
       center,
-      zoom: 7,
+      zoom: 12,
       mapTypeId: "satellite",
       mapTypeControl: false,
       fullscreenControl: false,
       streetViewControl: false,
     });
 
-    new window.google.maps.Marker({
-      position: center,
-      map,
-      title: "Proyecto",
-    });
-
-    const placeholder = elements.map.querySelector(".map-placeholder");
-    if (placeholder) {
-      placeholder.style.display = "none";
+    if (state.pendingMap) {
+      const pending = state.pendingMap;
+      state.pendingMap = null;
+      updateMap(pending);
+      return;
     }
+
+    const polygon = state.caseData
+      ? buildRectanglePolygon({
+          center,
+          area: state.caseData.area_m2,
+          perimeter: state.caseData.perimeter_m,
+        })
+      : null;
+    updateMap({ center, polygon });
   };
   document.body.appendChild(script);
 };
@@ -509,12 +791,23 @@ const bindEvents = () => {
   elements.fileInput.addEventListener("change", (event) => handleFile(event.target.files[0]));
   elements.runAuditBtn.addEventListener("click", runAudit);
   elements.exportBtn.addEventListener("click", exportRoadmap);
+  if (elements.loadLawenBtn) {
+    elements.loadLawenBtn.addEventListener("click", () => applyCase(DEMO_CASES.lawen));
+  }
 };
 
 initLayerControls();
 bindEvents();
+if (state.caseId && DEMO_CASES[state.caseId]) {
+  applyCase(DEMO_CASES[state.caseId]);
+} else if (elements.caseBadge) {
+  elements.caseBadge.textContent = "Caso demo: ninguno";
+}
 initMap();
 setGauge(0);
 setKpis(null);
 setEnvironment(null);
+setSatelliteEvidence(null);
+setRegulatoryAnchors(null);
+setSources(null);
 updateResultSummary(null);

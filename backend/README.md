@@ -14,12 +14,12 @@ Server defaults to `http://localhost:5050`.
 
 - `GET /api/health`
 - `POST /api/projects` (multipart/form-data)
-  - Fields: `name`, `industry`, `scenario`, `lat`, `lng`, `claims`, `specs`
+  - Fields: `name`, `industry`, `scenario`, `lat`, `lng`, `claims`, `specs`, `caseId`
   - File: `file` (PDF/TXT)
 - `GET /api/projects`
 - `GET /api/projects/:id`
 - `POST /api/audits`
-  - Body: `{ projectId }` or `{ projectName, claims, specs, lat, lng }`
+  - Body: `{ projectId, caseId }` or `{ projectName, claims, specs, lat, lng, caseId }`
 - `GET /api/audits/:id`
 - `GET /api/audits/:id/stream` (Server-Sent Events)
 
@@ -29,4 +29,5 @@ Server defaults to `http://localhost:5050`.
 - Optional OpenAI step: set `OPENAI_API_KEY` to enable GPT-backed regulatory insights.
 - You can override the model with `OPENAI_MODEL` and tweak reasoning with `OPENAI_REASONING_EFFORT`.
 - Optional environment signals: set `GOOGLE_ENV_API_KEY` to enable Air Quality + Weather context.
+- Optional satellite pack: `SATELLITE_MODE=demo` (default) or `disabled`.
 - Data is stored locally in `backend/data/db.json`.

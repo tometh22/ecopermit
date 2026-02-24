@@ -7,6 +7,36 @@ const {
 } = require("./openaiClient");
 
 const OPENAI_REASONING_EFFORT = process.env.OPENAI_REASONING_EFFORT || "";
+const SATELLITE_MODE = (process.env.SATELLITE_MODE || "demo").toLowerCase();
+
+const demoCases = {
+  lawen: {
+    regulatoryRefs: [
+      "Ley 13.273 - Bosques Protectores (petitorio vecinal)",
+      "Solicitud de DIA negativa y modelado hidrológico",
+      "Buffer hídrico de 15 m a cada lado del arroyo (según prensa)",
+    ],
+    satelliteEvidence: {
+      water: {
+        value: "Curso de agua presente",
+        detail: "Arroyo Corrientes atraviesa el predio (prensa).",
+      },
+      landCover: {
+        value: "Bosque/vegetación dominante",
+        detail: "Entorno forestal continuo (estimación demo).",
+      },
+      hydrology: {
+        value: "Cuenca sensible",
+        detail: "Se solicita modelo hidrológico + inundación.",
+      },
+      vegetation: {
+        value: "Cobertura alta",
+        detail: "NDVI estimado (demo).",
+      },
+      source: "Demo: prensa + estimaciones preliminares",
+    },
+  },
+};
 
 const restrictedZones = [
   {
@@ -26,6 +56,18 @@ const restrictedZones = [
     type: "Fault Lines",
     bounds: { minLat: 44.2, maxLat: 46.2, minLng: -124.6, maxLng: -122.7 },
     law: "Seismic Safety Code Art. 7",
+  },
+  {
+    name: "Bosque Peralta Ramos (Demo)",
+    type: "Bosque protegido",
+    bounds: { minLat: -38.105, maxLat: -38.065, minLng: -57.605, maxLng: -57.56 },
+    law: "Ley 13.273 (petitorio vecinal)",
+  },
+  {
+    name: "Arroyo Corrientes (Demo)",
+    type: "Curso de agua",
+    bounds: { minLat: -38.1, maxLat: -38.07, minLng: -57.595, maxLng: -57.565 },
+    law: "Buffer hídrico 15 m (según prensa)",
   },
 ];
 
@@ -75,10 +117,25 @@ const buildRegulatoryPrompt = ({ projectName, industry, scenario, coordinates, c
 const detectInconsistency = (claimsText, specsText) => {
   const claims = normalize(claimsText);
   const specs = normalize(specsText);
-  const hasNeutralImpact = claims.includes("neutral impact");
-  const hasExtraction = specs.includes("resource extraction") || specs.includes("discharge");
+  const hasNeutralImpact =
+    claims.includes("neutral impact") ||
+    claims.includes("impacto neutral") ||
+    claims.includes("sin impacto") ||
+    claims.includes("no altera") ||
+    claims.includes("no afect");
+  const mentionsWater =
+    claims.includes("arroyo") || claims.includes("hidro") || claims.includes("hídr");
+  const hasDischarge =
+    specs.includes("resource extraction") ||
+    specs.includes("discharge") ||
+    specs.includes("descarga") ||
+    specs.includes("vuelco") ||
+    specs.includes("efluente") ||
+    specs.includes("planta de tratamiento") ||
+    specs.includes("desagüe") ||
+    specs.includes("consumo de agua");
 
-  if (hasNeutralImpact && hasExtraction) {
+  if ((hasNeutralImpact || mentionsWater) && hasDischarge) {
     return {
       severity: "CRITICAL_ALERT",
       claimed: claimsText || "Neutral Impact declared for hydrological systems.",
@@ -93,6 +150,29 @@ const detectInconsistency = (claimsText, specsText) => {
       claimed: claimsText || "No explicit claim provided.",
       reality: specsText || "No engineering specs provided.",
       legal: "No direct conflict detected. Manual review recommended.",
+    };
+  }
+
+  return null;
+};
+
+const buildSatelliteEvidence = ({ caseId }) => {
+  if (SATELLITE_MODE === "disabled") {
+    return null;
+  }
+
+  const caseMeta = demoCases[caseId];
+  if (caseMeta?.satelliteEvidence) {
+    return caseMeta.satelliteEvidence;
+  }
+
+  if (SATELLITE_MODE === "demo") {
+    return {
+      water: { value: "Sin datos", detail: "Conecta datasets satelitales." },
+      landCover: { value: "Sin datos", detail: "Conecta datasets satelitales." },
+      hydrology: { value: "Sin datos", detail: "Conecta datasets satelitales." },
+      vegetation: { value: "Sin datos", detail: "Conecta datasets satelitales." },
+      source: "Demo: integra Earth Engine o Sentinel Hub",
     };
   }
 
@@ -152,6 +232,7 @@ const buildLogs = ({
   overlaps,
   riskScore,
   environment,
+  satelliteEvidence,
   llmUsed,
   llmError,
 }) => {
@@ -259,6 +340,13 @@ const buildLogs = ({
     });
   }
 
+  if (satelliteEvidence) {
+    logs.push({
+      agent: "Satellite_Evidence_Engine",
+      message: "Satellite evidence pack loaded (demo mode).",
+    });
+  }
+
   if (llmError) {
     logs.push({
       agent: "OpenAI_Reasoning_Engine",
@@ -279,6 +367,7 @@ const runAudit = async ({
   scenario,
   environment,
   contextRiskAdjustment = 0,
+  caseId = "",
 }) => {
   let inconsistency = detectInconsistency(claims, specs);
   const overlaps = checkRestrictedZones(coordinates);
@@ -287,6 +376,12 @@ const runAudit = async ({
   let llmSummary = "";
   let llmError = "";
   let llmUsed = false;
+  const caseMeta = demoCases[caseId];
+  const satelliteEvidence = buildSatelliteEvidence({ caseId });
+
+  if (caseMeta?.regulatoryRefs?.length) {
+    regulatoryRefs = Array.from(new Set([...regulatoryRefs, ...caseMeta.regulatoryRefs]));
+  }
 
   if (isOpenAIConfigured()) {
     llmUsed = true;
@@ -360,6 +455,8 @@ const runAudit = async ({
     zoneSummary,
     environment,
     contextRiskAdjustment,
+    satelliteEvidence,
+    caseId,
     llmSummary,
     riskAdjustment,
     llmUsed: llmUsed && !llmError,
@@ -373,6 +470,7 @@ const runAudit = async ({
     overlaps,
     riskScore,
     environment,
+    satelliteEvidence,
     llmUsed,
     llmError,
   });

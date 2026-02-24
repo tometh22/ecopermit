@@ -57,6 +57,7 @@ app.post("/api/projects", upload.single("file"), (req, res) => {
     : null;
 
   const project = createProject({
+    caseId: req.body.caseId,
     name: req.body.name,
     industry: req.body.industry,
     scenario: req.body.scenario,
@@ -100,6 +101,7 @@ app.post("/api/audits", async (req, res, next) => {
     const claims = project?.claims || req.body.claims || "";
     const specs = project?.specs || req.body.specs || "";
     const uploadedFileName = project?.file?.originalName || "";
+    const caseId = project?.caseId || req.body.caseId || "";
 
     const environment = await fetchEnvironmentalContext(coordinates);
 
@@ -113,6 +115,7 @@ app.post("/api/audits", async (req, res, next) => {
       uploadedFileName,
       environment,
       contextRiskAdjustment: environment?.riskAdjustment ?? 0,
+      caseId,
     });
 
     const audit = createAudit({

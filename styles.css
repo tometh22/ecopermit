@@ -87,7 +87,7 @@ h1 {
 
 .status-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -136,6 +136,19 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.case-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(16, 25, 35, 0.75);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .panel-header h2 {
@@ -244,6 +257,12 @@ button.ghost {
   color: var(--accent);
   border: 1px dashed var(--accent);
   margin-top: 8px;
+}
+
+button.ghost.small {
+  margin-top: 0;
+  padding: 6px 12px;
+  font-size: 12px;
 }
 
 .details {
@@ -380,6 +399,42 @@ button.ghost {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+}
+
+.pill-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  background: rgba(19, 26, 36, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #e0e6ef;
+}
+
+.pill.warn {
+  border-color: rgba(224, 91, 91, 0.6);
+  color: #f7c4c4;
+}
+
+.sources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.sources-list a {
+  color: #9fe6ff;
+  text-decoration: none;
+}
+
+.sources-list a:hover {
+  text-decoration: underline;
 }
 
 .context-grid div {

@@ -36,6 +36,14 @@
           <span>Alertas</span>
           <strong id="kpiAlerts">0</strong>
         </div>
+        <div class="status-card">
+          <span>Cruces legales</span>
+          <strong id="kpiAnchors">0</strong>
+        </div>
+        <div class="status-card">
+          <span>Solapamientos</span>
+          <strong id="kpiOverlaps">0</strong>
+        </div>
       </section>
 
       <main class="flow">
@@ -43,6 +51,11 @@
           <div class="panel-header">
             <h2>1. Ingreso del proyecto</h2>
             <span class="tag">Paso 1</span>
+          </div>
+
+          <div class="case-banner">
+            <span id="caseBadge">Caso demo: ninguno</span>
+            <button class="ghost small" type="button" id="loadLawenBtn">Cargar caso Lawen</button>
           </div>
 
           <div class="card upload-zone" id="uploadZone">
@@ -172,6 +185,33 @@
             </div>
             <p class="context-note" id="envNote">Fuente: Google Air Quality & Weather</p>
           </div>
+
+          <div class="card satellite-card">
+            <h4>Evidencia satelital</h4>
+            <div class="context-grid">
+              <div>
+                <span>Agua histórica</span>
+                <strong id="satWater">--</strong>
+                <small id="satWaterNote"></small>
+              </div>
+              <div>
+                <span>Cobertura</span>
+                <strong id="satLand">--</strong>
+                <small id="satLandNote"></small>
+              </div>
+              <div>
+                <span>Hidrología</span>
+                <strong id="satHydro">--</strong>
+                <small id="satHydroNote"></small>
+              </div>
+              <div>
+                <span>Vegetación</span>
+                <strong id="satVegetation">--</strong>
+                <small id="satVegetationNote"></small>
+              </div>
+            </div>
+            <p class="context-note" id="satSource">Fuente: integrar datasets satelitales.</p>
+          </div>
         </section>
 
         <section class="panel">
@@ -194,6 +234,14 @@
                 <button class="secondary" id="exportBtn">Generar hoja de corrección</button>
               </div>
             </div>
+          </div>
+
+          <div class="card regulatory-card">
+            <h4>Cruces regulatorios</h4>
+            <p class="muted">Referencias encontradas</p>
+            <div class="pill-grid" id="regulatoryList"></div>
+            <p class="muted">Solapamientos geográficos</p>
+            <div class="pill-grid" id="overlapList"></div>
           </div>
 
           <div class="card inconsistency" id="inconsistencyCard">
@@ -221,6 +269,11 @@
               <div class="terminal-line muted">Esperando ejecución...</div>
             </div>
           </details>
+
+          <div class="card sources-card">
+            <h4>Fuentes del caso</h4>
+            <div class="sources-list" id="sourcesList"></div>
+          </div>
 
           <details class="card details">
             <summary>Detalle técnico</summary>
