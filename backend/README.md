@@ -32,4 +32,5 @@ Server defaults to `http://localhost:5050`.
 - Optional satellite pack: `SATELLITE_MODE=demo` (default) or `disabled`.
 - Optional territorial signals (OSM/Overpass): `OVERPASS_ENDPOINT`, `OVERPASS_RADIUS_M`, `OVERPASS_TIMEOUT_MS`.
 - Optional Planet Data API: `PLANET_API_KEY`, `PLANET_ITEM_TYPES`, `PLANET_LOOKBACK_DAYS`, `PLANET_MAX_CLOUD`.
+- Planet Stats API: `PLANET_STATS_INTERVAL` (month/week/day) and optional `PLANET_STATS_UTC_OFFSET`.
 - Data is stored locally in `backend/data/db.json`.

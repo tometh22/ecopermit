@@ -138,6 +138,8 @@ const elements = {
   planetCount: document.getElementById("planetCount"),
   planetCloud: document.getElementById("planetCloud"),
   planetTypes: document.getElementById("planetTypes"),
+  planetAvg: document.getElementById("planetAvg"),
+  planetLastMonth: document.getElementById("planetLastMonth"),
   planetNote: document.getElementById("planetNote"),
   regulatoryList: document.getElementById("regulatoryList"),
   overlapList: document.getElementById("overlapList"),
@@ -309,6 +311,8 @@ const setPlanetSignals = (signals) => {
     elements.planetCount.textContent = "--";
     elements.planetCloud.textContent = "--";
     elements.planetTypes.textContent = "--";
+    elements.planetAvg.textContent = "--";
+    elements.planetLastMonth.textContent = "--";
     if (elements.planetNote) {
       elements.planetNote.textContent = signals?.error
         ? `Planet: ${signals.error}`
@@ -325,8 +329,20 @@ const setPlanetSignals = (signals) => {
     ? `${Math.round(signals.avgCloudCover * 100)}%`
     : "--";
   elements.planetTypes.textContent = Array.isArray(signals.itemTypes) ? signals.itemTypes.join(", ") : "--";
+  if (signals.stats && !signals.stats.error) {
+    elements.planetAvg.textContent = Number.isFinite(signals.stats.averageCount)
+      ? `${signals.stats.averageCount.toFixed(1)}`
+      : "--";
+    elements.planetLastMonth.textContent = Number.isFinite(signals.stats.lastBucket?.count)
+      ? `${signals.stats.lastBucket.count}`
+      : "--";
+  } else {
+    elements.planetAvg.textContent = "--";
+    elements.planetLastMonth.textContent = "--";
+  }
   if (elements.planetNote) {
-    elements.planetNote.textContent = signals.source || "Planet Data API";
+    const statsNote = signals.stats?.error ? `Stats: ${signals.stats.error}` : "";
+    elements.planetNote.textContent = [signals.source || "Planet Data API", statsNote].filter(Boolean).join(" · ");
   }
 };
 

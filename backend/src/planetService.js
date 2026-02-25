@@ -5,6 +5,8 @@ const PLANET_LOOKBACK_DAYS = Number(process.env.PLANET_LOOKBACK_DAYS || 365);
 const PLANET_PAGE_SIZE = Number(process.env.PLANET_PAGE_SIZE || 10);
 const PLANET_MAX_CLOUD = process.env.PLANET_MAX_CLOUD ? Number(process.env.PLANET_MAX_CLOUD) : null;
 const PLANET_TIMEOUT_MS = Number(process.env.PLANET_TIMEOUT_MS || 12000);
+const PLANET_STATS_INTERVAL = (process.env.PLANET_STATS_INTERVAL || "month").toLowerCase();
+const PLANET_STATS_UTC_OFFSET = process.env.PLANET_STATS_UTC_OFFSET || "";
 
 const metersToLat = (meters) => meters / 111320;
 const metersToLng = (meters, lat) => meters / (111320 * Math.cos((lat * Math.PI) / 180));
@@ -56,6 +58,54 @@ const buildFilter = ({ geometry, lookbackDays }) => {
   return { type: "AndFilter", config };
 };
 
+const fetchPlanetStats = async ({ filter }) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PLANET_TIMEOUT_MS);
+  try {
+    const payload = {
+      item_types: PLANET_ITEM_TYPES,
+      interval: PLANET_STATS_INTERVAL,
+      filter,
+    };
+    if (PLANET_STATS_UTC_OFFSET) {
+      payload.utc_offset = PLANET_STATS_UTC_OFFSET;
+    }
+
+    const response = await fetch(`${PLANET_BASE_URL}/data/v1/stats`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `api-key ${PLANET_API_KEY}`,
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return { error: `Planet stats error ${response.status}: ${errorText}` };
+    }
+
+    const data = await response.json();
+    const buckets = Array.isArray(data?.buckets) ? data.buckets : [];
+    const total = buckets.reduce((sum, bucket) => sum + (bucket.count || 0), 0);
+    const average = buckets.length ? total / buckets.length : 0;
+    const lastBucket = buckets[buckets.length - 1] || null;
+
+    return {
+      interval: data.interval || PLANET_STATS_INTERVAL,
+      buckets,
+      totalCount: total,
+      averageCount: average,
+      lastBucket,
+    };
+  } catch (error) {
+    return { error: error.message || "Planet stats request failed" };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 const fetchPlanetSignals = async ({ coordinates, boundary }) => {
   if (!PLANET_API_KEY || !PLANET_ITEM_TYPES.length) {
     return null;
@@ -101,6 +151,8 @@ const fetchPlanetSignals = async ({ coordinates, boundary }) => {
       ? cloudValues.reduce((sum, value) => sum + value, 0) / cloudValues.length
       : null;
 
+    const stats = await fetchPlanetStats({ filter });
+
     return {
       count,
       latestAcquired: latest,
@@ -108,6 +160,7 @@ const fetchPlanetSignals = async ({ coordinates, boundary }) => {
       itemTypes: PLANET_ITEM_TYPES,
       lookbackDays: PLANET_LOOKBACK_DAYS,
       source: "Planet Data API",
+      stats,
     };
   } catch (error) {
     return { error: error.message || "Planet request failed" };
