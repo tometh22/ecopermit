@@ -370,27 +370,66 @@ const buildExecutiveSummary = ({ caseId, overlaps, inconsistency, environment, e
   };
 };
 
-const buildSatelliteEvidence = ({ caseId }) => {
+const mergeEvidence = (...sources) => {
+  const result = {
+    water: null,
+    landCover: null,
+    hydrology: null,
+    vegetation: null,
+    source: "",
+  };
+  const sourceLabels = [];
+  for (const source of sources) {
+    if (!source) {
+      continue;
+    }
+    if (source.water) {
+      result.water = source.water;
+    }
+    if (source.landCover) {
+      result.landCover = source.landCover;
+    }
+    if (source.hydrology) {
+      result.hydrology = source.hydrology;
+    }
+    if (source.vegetation) {
+      result.vegetation = source.vegetation;
+    }
+    if (source.source) {
+      sourceLabels.push(source.source);
+    }
+  }
+  if (sourceLabels.length) {
+    result.source = Array.from(new Set(sourceLabels)).join(" · ");
+  }
+  return result;
+};
+
+const buildSatelliteEvidence = ({ caseId, territorialSignals, planetProcessingSignals }) => {
   if (SATELLITE_MODE === "disabled") {
     return null;
   }
 
   const caseMeta = demoCases[caseId];
-  if (caseMeta?.satelliteEvidence) {
-    return caseMeta.satelliteEvidence;
-  }
-
-  if (SATELLITE_MODE === "demo") {
-    return {
+  const baseEvidence = caseMeta?.satelliteEvidence
+    || (SATELLITE_MODE === "demo"
+      ? {
       water: { value: "Sin datos", detail: "Conecta datasets satelitales." },
       landCover: { value: "Sin datos", detail: "Conecta datasets satelitales." },
       hydrology: { value: "Sin datos", detail: "Conecta datasets satelitales." },
       vegetation: { value: "Sin datos", detail: "Conecta datasets satelitales." },
       source: "Demo: integra Earth Engine o Sentinel Hub",
-    };
+    }
+      : null);
+
+  const territorialEvidence = territorialSignals?.evidence || null;
+  const processingEvidence = planetProcessingSignals?.evidence || null;
+
+  if (!baseEvidence && !territorialEvidence && !processingEvidence) {
+    return null;
   }
 
-  return null;
+  return mergeEvidence(baseEvidence, territorialEvidence, processingEvidence);
 };
 
 const fetchRegulatoryReferences = (coordinates) => {
@@ -495,6 +534,7 @@ const buildLogs = ({
   satelliteEvidence,
   territorialSignals,
   planetSignals,
+  planetProcessingSignals,
   executive,
   llmUsed,
   llmError,
@@ -633,6 +673,21 @@ const buildLogs = ({
     });
   }
 
+  if (planetProcessingSignals) {
+    const ndvi = Number.isFinite(planetProcessingSignals.ndviMean)
+      ? planetProcessingSignals.ndviMean.toFixed(2)
+      : "N/A";
+    const ndwi = Number.isFinite(planetProcessingSignals.ndwiMean)
+      ? planetProcessingSignals.ndwiMean.toFixed(2)
+      : "N/A";
+    logs.push({
+      agent: "Planet_Processing_API",
+      message: planetProcessingSignals.error
+        ? `Processing warning: ${planetProcessingSignals.error}`
+        : `NDVI ${ndvi} · NDWI ${ndwi}.`,
+    });
+  }
+
   if (llmError) {
     logs.push({
       agent: "OpenAI_Reasoning_Engine",
@@ -656,6 +711,7 @@ const runAudit = async ({
   environment,
   territorialSignals,
   planetSignals,
+  planetProcessingSignals,
   contextRiskAdjustment = 0,
   caseId = "",
 }) => {
@@ -667,7 +723,7 @@ const runAudit = async ({
   let llmError = "";
   let llmUsed = false;
   const caseMeta = demoCases[caseId];
-  const satelliteEvidence = territorialSignals?.evidence || buildSatelliteEvidence({ caseId });
+  const satelliteEvidence = buildSatelliteEvidence({ caseId, territorialSignals, planetProcessingSignals });
   const extraAlerts = [...(territorialSignals?.alerts || [])];
 
   if (caseMeta?.regulatoryRefs?.length) {
@@ -700,6 +756,30 @@ const runAudit = async ({
     extraAlerts.push({
       type: "Satelital",
       message: "Alta nubosidad en escenas recientes.",
+      severity: "Media",
+    });
+  }
+
+  if (Number.isFinite(planetProcessingSignals?.ndwiMean)) {
+    if (planetProcessingSignals.ndwiMean >= 0.2) {
+      extraAlerts.push({
+        type: "Satelital",
+        message: "Índice NDWI sugiere presencia de agua/humedal.",
+        severity: "Alta",
+      });
+    } else if (planetProcessingSignals.ndwiMean >= 0.1) {
+      extraAlerts.push({
+        type: "Satelital",
+        message: "NDWI indica humedad superficial moderada.",
+        severity: "Media",
+      });
+    }
+  }
+
+  if (Number.isFinite(planetProcessingSignals?.ndviMean) && planetProcessingSignals.ndviMean >= 0.6) {
+    extraAlerts.push({
+      type: "Satelital",
+      message: "NDVI alto: cobertura vegetal densa.",
       severity: "Media",
     });
   }
@@ -789,6 +869,7 @@ const runAudit = async ({
     satelliteEvidence,
     territorialSignals,
     planetSignals,
+    planetProcessingSignals,
     caseId,
     executive,
     llmSummary,
@@ -807,6 +888,7 @@ const runAudit = async ({
     satelliteEvidence,
     territorialSignals,
     planetSignals,
+    planetProcessingSignals,
     executive,
     llmUsed,
     llmError,

@@ -75,6 +75,24 @@ PLANET_STATS_INTERVAL=month
 PLANET_STATS_UTC_OFFSET=
 ```
 
+## Planet Processing API (Stats) (Opcional)
+
+Para obtener NDVI/NDWI desde Processing Stats, configura OAuth en el backend:
+
+```
+PLANET_OAUTH_CLIENT_ID=YOUR_CLIENT_ID
+PLANET_OAUTH_CLIENT_SECRET=YOUR_CLIENT_SECRET
+PLANET_OAUTH_TOKEN_URL=https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token
+PLANET_SH_STATS_URL=https://services.sentinel-hub.com/api/v1/statistics
+PLANET_SH_COLLECTION_ID=
+PLANET_SH_DATA_TYPE=
+PLANET_SH_TIME_RANGE_DAYS=90
+PLANET_SH_RES=10
+PLANET_SH_MAX_CLOUD=40
+```
+
+Si usas BYOC, establece `PLANET_SH_COLLECTION_ID` y `PLANET_SH_DATA_TYPE=byoc`.
+
 ## Demo Logic
 
 - Regulatory RAG: Simulated retrieval from `Global_Regulatory_Framework` with optional GPT enrichment.
