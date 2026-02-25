@@ -16,6 +16,58 @@ const demoCases = {
       "Solicitud de DIA negativa y modelado hidrológico",
       "Buffer hídrico de 15 m a cada lado del arroyo (según prensa)",
     ],
+    executive: {
+      indices: [
+        { key: "physical", label: "Riesgo físico", score: 72, level: "Alto", mitigability: "Media" },
+        { key: "climate", label: "Riesgo climático 2050", score: 65, level: "Alto", mitigability: "Baja" },
+        { key: "social", label: "Riesgo social", score: 78, level: "Muy alto", mitigability: "Baja" },
+        { key: "regulatory", label: "Riesgo regulatorio", score: 52, level: "Medio", mitigability: "Alta" },
+        { key: "political", label: "Riesgo político", score: 46, level: "Medio", mitigability: "Media" },
+      ],
+      alerts: [
+        {
+          type: "Hídrico",
+          message: "31% del predio en zona de recurrencia hídrica < 15 años.",
+          severity: "Bloqueante",
+        },
+        {
+          type: "Social",
+          message: "Zona con 3 conflictos urbanos en los últimos 6 años.",
+          severity: "Alta",
+        },
+        {
+          type: "Ambiental",
+          message: "Cercanía a humedal categorizado como área sensible.",
+          severity: "Media",
+        },
+        {
+          type: "Climático",
+          message: "Proyección aumento precipitación extrema +18% (2050).",
+          severity: "Media",
+        },
+      ],
+      details: {
+        physical:
+          "Riesgo estructural alto: requiere rediseño hidráulico o reducción de huella construida.",
+        social:
+          "Alta probabilidad de conflicto si no se implementa licencia social temprana.",
+        climate:
+          "Incremento significativo de costos de adaptación futura por eventos extremos.",
+        regulatory: "Viable con condicionamientos técnicos y revisión de buffer hídrico.",
+        political:
+          "Moderado: se requiere estrategia institucional y monitoreo de presión pública.",
+      },
+      decision: {
+        label: "Apto con rediseño estructural",
+        note: "Mitigaciones mayores requeridas antes de inversión.",
+      },
+      economic: {
+        capex: "+14% CAPEX ambiental estimado",
+        hydraulic: "Mitigación hidráulica prioritaria",
+        scenario: "Escenario 2050: estrés hídrico creciente",
+        note: "Indicativo. Ajustar con ingeniería de detalle.",
+      },
+    },
     satelliteEvidence: {
       water: {
         value: "Curso de agua presente",
@@ -156,6 +208,151 @@ const detectInconsistency = (claimsText, specsText) => {
   return null;
 };
 
+const scoreToLevel = (score) => {
+  if (score >= 70) {
+    return "Alto";
+  }
+  if (score >= 40) {
+    return "Medio";
+  }
+  return "Bajo";
+};
+
+const scoreToMitigability = (score) => {
+  if (score >= 70) {
+    return "Baja";
+  }
+  if (score >= 40) {
+    return "Media";
+  }
+  return "Alta";
+};
+
+const buildDefaultIndices = ({ overlaps, inconsistency, environment }) => {
+  const hasWaterOverlap = overlaps.some((zone) => zone.type.toLowerCase().includes("agua"));
+  const physicalScore = hasWaterOverlap ? 68 : 45;
+  const socialScore = inconsistency?.severity === "CRITICAL_ALERT" ? 70 : 42;
+  const climateScore = environment?.weather ? 58 : 50;
+  const regulatoryScore = inconsistency ? 60 : 46;
+  const politicalScore = 40;
+
+  return [
+    {
+      key: "physical",
+      label: "Riesgo físico",
+      score: physicalScore,
+      level: scoreToLevel(physicalScore),
+      mitigability: scoreToMitigability(physicalScore),
+    },
+    {
+      key: "climate",
+      label: "Riesgo climático 2050",
+      score: climateScore,
+      level: scoreToLevel(climateScore),
+      mitigability: scoreToMitigability(climateScore),
+    },
+    {
+      key: "social",
+      label: "Riesgo social",
+      score: socialScore,
+      level: scoreToLevel(socialScore),
+      mitigability: scoreToMitigability(socialScore),
+    },
+    {
+      key: "regulatory",
+      label: "Riesgo regulatorio",
+      score: regulatoryScore,
+      level: scoreToLevel(regulatoryScore),
+      mitigability: scoreToMitigability(regulatoryScore),
+    },
+    {
+      key: "political",
+      label: "Riesgo político",
+      score: politicalScore,
+      level: scoreToLevel(politicalScore),
+      mitigability: scoreToMitigability(politicalScore),
+    },
+  ];
+};
+
+const computeExecutiveScore = (indices, penalties) => {
+  const weights = {
+    physical: 0.25,
+    social: 0.2,
+    climate: 0.2,
+    regulatory: 0.2,
+    political: 0.15,
+  };
+  const base = indices.reduce((sum, item) => {
+    const weight = weights[item.key] || 0;
+    return sum + item.score * weight;
+  }, 0);
+  const penalty = penalties.reduce((sum, value) => sum + value, 0);
+  return clamp(Math.round(base + penalty), 0, 100);
+};
+
+const buildExecutiveSummary = ({ caseId, overlaps, inconsistency, environment }) => {
+  const caseMeta = demoCases[caseId];
+  const indices = caseMeta?.executive?.indices || buildDefaultIndices({ overlaps, inconsistency, environment });
+  const penalties = [];
+
+  if (overlaps.length) {
+    penalties.push(6);
+  }
+  if (inconsistency?.severity === "CRITICAL_ALERT") {
+    penalties.push(10);
+  }
+
+  const exposureScore = computeExecutiveScore(indices, penalties);
+  const exposureLevel = exposureScore >= 70 ? "Riesgo alto" : exposureScore >= 40 ? "Riesgo medio" : "Riesgo bajo";
+  const alerts =
+    caseMeta?.executive?.alerts ||
+    (overlaps.length || inconsistency
+      ? [
+          ...(overlaps.length
+            ? [
+                {
+                  type: "Geoespacial",
+                  message: `${overlaps.length} zona(s) sensible(s) intersectadas.`,
+                  severity: "Alta",
+                },
+              ]
+            : []),
+          ...(inconsistency
+            ? [
+                {
+                  type: "Coherencia técnica",
+                  message: "Claims vs specs requieren revisión.",
+                  severity: inconsistency.severity === "CRITICAL_ALERT" ? "Bloqueante" : "Media",
+                },
+              ]
+            : []),
+        ]
+      : []);
+
+  const decision =
+    caseMeta?.executive?.decision ||
+    (exposureScore >= 80
+      ? { label: "Riesgo crítico - reconsiderar inversión", note: "Bloqueantes detectados." }
+      : exposureScore >= 60
+        ? { label: "Apto con rediseño estructural", note: "Mitigaciones mayores requeridas." }
+        : exposureScore >= 40
+          ? { label: "Apto con mitigaciones menores", note: "Mitigaciones puntuales recomendadas." }
+          : { label: "Apto", note: "Bajo riesgo relativo." });
+
+  return {
+    exposureScore,
+    exposureLevel,
+    summary: caseMeta?.executive ? "Exposición calculada con ICET y señales del caso." : "Exposición calculada con ICET.",
+    indices,
+    alerts,
+    decision,
+    details: caseMeta?.executive?.details,
+    economic: caseMeta?.executive?.economic,
+    updatedAt: new Date().toISOString(),
+  };
+};
+
 const buildSatelliteEvidence = ({ caseId }) => {
   if (SATELLITE_MODE === "disabled") {
     return null;
@@ -233,6 +430,7 @@ const buildLogs = ({
   riskScore,
   environment,
   satelliteEvidence,
+  executive,
   llmUsed,
   llmError,
 }) => {
@@ -296,6 +494,13 @@ const buildLogs = ({
       message: `Risk score computed at ${riskScore}/100.`,
     },
   ];
+
+  if (executive) {
+    logs.push({
+      agent: "Executive_Scorecard",
+      message: `ICET exposure score: ${executive.exposureScore}/100 (${executive.exposureLevel}).`,
+    });
+  }
 
   if (inconsistency?.severity === "CRITICAL_ALERT") {
     logs.push({
@@ -440,6 +645,13 @@ const runAudit = async ({
   const zoneSummary = overlaps.map((zone) => `${zone.type}: ${zone.name} (${zone.law})`).join(" | ") ||
     "No overlaps detected.";
 
+  const executive = buildExecutiveSummary({
+    caseId,
+    overlaps,
+    inconsistency,
+    environment,
+  });
+
   const riskScore = computeRisk({
     hasFile: Boolean(uploadedFileName),
     inconsistency,
@@ -457,6 +669,7 @@ const runAudit = async ({
     contextRiskAdjustment,
     satelliteEvidence,
     caseId,
+    executive,
     llmSummary,
     riskAdjustment,
     llmUsed: llmUsed && !llmError,
@@ -471,6 +684,7 @@ const runAudit = async ({
     riskScore,
     environment,
     satelliteEvidence,
+    executive,
     llmUsed,
     llmError,
   });

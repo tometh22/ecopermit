@@ -79,6 +79,26 @@ const elements = {
   exportBtn: document.getElementById("exportBtn"),
   loadLawenBtn: document.getElementById("loadLawenBtn"),
   caseBadge: document.getElementById("caseBadge"),
+  projectTitle: document.getElementById("projectTitle"),
+  projectLocation: document.getElementById("projectLocation"),
+  projectArea: document.getElementById("projectArea"),
+  modelVersion: document.getElementById("modelVersion"),
+  updatedAt: document.getElementById("updatedAt"),
+  exposureLevel: document.getElementById("exposureLevel"),
+  exposureNote: document.getElementById("exposureNote"),
+  alertList: document.getElementById("alertList"),
+  decisionLabel: document.getElementById("decisionLabel"),
+  decisionNote: document.getElementById("decisionNote"),
+  indicesBody: document.getElementById("indicesBody"),
+  detailPhysical: document.getElementById("detailPhysical"),
+  detailSocial: document.getElementById("detailSocial"),
+  detailClimate: document.getElementById("detailClimate"),
+  detailRegulatory: document.getElementById("detailRegulatory"),
+  detailPolitical: document.getElementById("detailPolitical"),
+  capexValue: document.getElementById("capexValue"),
+  hydraulicCost: document.getElementById("hydraulicCost"),
+  scenarioNote: document.getElementById("scenarioNote"),
+  economicNote: document.getElementById("economicNote"),
   claims: document.getElementById("claims"),
   specs: document.getElementById("specs"),
   lat: document.getElementById("lat"),
@@ -89,21 +109,11 @@ const elements = {
   terminal: document.getElementById("terminal"),
   riskGauge: document.getElementById("riskGauge"),
   riskValue: document.getElementById("riskValue"),
-  claimedText: document.getElementById("claimedText"),
-  realityText: document.getElementById("realityText"),
-  legalText: document.getElementById("legalText"),
-  severityChip: document.getElementById("severityChip"),
-  summaryStatus: document.getElementById("summaryStatus"),
-  resultHeadline: document.getElementById("resultHeadline"),
-  resultSummary: document.getElementById("resultSummary"),
-  layerBoundary: document.getElementById("layerBoundary"),
-  layerHydro: document.getElementById("layerHydro"),
-  layerVegetation: document.getElementById("layerVegetation"),
+  layerFlood: document.getElementById("layerFlood"),
+  layerEco: document.getElementById("layerEco"),
+  layerSocial: document.getElementById("layerSocial"),
+  layerZoning: document.getElementById("layerZoning"),
   map: document.getElementById("map"),
-  kpiRisk: document.getElementById("kpiRisk"),
-  kpiAlerts: document.getElementById("kpiAlerts"),
-  kpiAnchors: document.getElementById("kpiAnchors"),
-  kpiOverlaps: document.getElementById("kpiOverlaps"),
   envAqi: document.getElementById("envAqi"),
   envAqiCategory: document.getElementById("envAqiCategory"),
   envPm25: document.getElementById("envPm25"),
@@ -128,9 +138,10 @@ const elements = {
 };
 
 const mapLayers = {
-  boundary: document.querySelector(".layer.boundary"),
-  hydro: document.querySelector(".layer.hydro"),
-  vegetation: document.querySelector(".layer.vegetation"),
+  flood: document.querySelector(".map-overlay.flood"),
+  eco: document.querySelector(".map-overlay.eco"),
+  social: document.querySelector(".map-overlay.social"),
+  zoning: document.querySelector(".map-overlay.zoning"),
 };
 
 let selectedFile = null;
@@ -186,9 +197,9 @@ const resetTerminal = () => {
 const setGauge = (value) => {
   const risk = Math.max(0, Math.min(100, Math.round(value)));
   elements.riskValue.textContent = risk;
-  let color = "#7ef29d";
+  let color = "#2fbf71";
   if (risk >= 70) {
-    color = "#e05b5b";
+    color = "#d13438";
   } else if (risk >= 40) {
     color = "#f5b353";
   }
@@ -196,16 +207,8 @@ const setGauge = (value) => {
   elements.riskGauge.style.setProperty("--risk-color", color);
 };
 
-const setKpis = (analysis) => {
-  elements.kpiRisk.textContent = analysis?.riskScore ?? 0;
-  const hasAlert = analysis?.inconsistency?.severity === "CRITICAL_ALERT";
-  elements.kpiAlerts.textContent = hasAlert ? 1 : analysis?.inconsistency ? 1 : 0;
-  if (elements.kpiAnchors) {
-    elements.kpiAnchors.textContent = analysis?.regulatoryRefs?.length || 0;
-  }
-  if (elements.kpiOverlaps) {
-    elements.kpiOverlaps.textContent = analysis?.overlaps?.length || 0;
-  }
+const setKpis = (_analysis) => {
+  return;
 };
 
 const setEnvironment = (environment) => {
@@ -325,6 +328,173 @@ const setSources = (sources) => {
     .join("");
 };
 
+const formatLatLng = (coords) => {
+  if (!coords) {
+    return "--";
+  }
+  return `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+};
+
+const formatArea = (areaMeters) => {
+  if (!Number.isFinite(areaMeters)) {
+    return "--";
+  }
+  const hectares = areaMeters / 10000;
+  return `${hectares.toFixed(1)} ha`;
+};
+
+const setProjectMeta = ({ name, coordinates, area, updatedAt }) => {
+  if (elements.projectTitle) {
+    elements.projectTitle.textContent = name || "Sin definir";
+  }
+  if (elements.projectLocation) {
+    elements.projectLocation.textContent = formatLatLng(coordinates);
+  }
+  if (elements.projectArea) {
+    elements.projectArea.textContent = formatArea(area);
+  }
+  if (elements.updatedAt) {
+    elements.updatedAt.textContent = updatedAt ? new Date(updatedAt).toLocaleDateString() : "--";
+  }
+};
+
+const getLevelLabel = (score) => {
+  if (score >= 70) {
+    return "Riesgo alto";
+  }
+  if (score >= 40) {
+    return "Riesgo medio";
+  }
+  return "Riesgo bajo";
+};
+
+const renderIndices = (indices) => {
+  if (!elements.indicesBody) {
+    return;
+  }
+  if (!indices || indices.length === 0) {
+    elements.indicesBody.innerHTML = "<div class=\"muted\">Sin índices cargados.</div>";
+    return;
+  }
+
+  elements.indicesBody.innerHTML = indices
+    .map((item) => {
+      const barWidth = Math.max(0, Math.min(100, item.score));
+      return `
+      <div class="indices-row">
+        <span class="index-name">${item.label}</span>
+        <span class="index-score">
+          ${item.score}
+          <span class="index-bar"><span style="width:${barWidth}%"></span></span>
+        </span>
+        <span class="index-level">${item.level}</span>
+        <span class="index-mitigability">${item.mitigability}</span>
+      </div>
+      `;
+    })
+    .join("");
+};
+
+const renderAlerts = (alerts) => {
+  if (!elements.alertList) {
+    return;
+  }
+  if (!alerts || alerts.length === 0) {
+    elements.alertList.innerHTML = "<div class=\"muted\">Sin alertas críticas.</div>";
+    return;
+  }
+
+  elements.alertList.innerHTML = alerts
+    .map((alert) => {
+      const severity = alert.severity || "Media";
+      const severityClass = severity === "Bloqueante" || severity === "Alta" ? "block" : "warn";
+      return `
+        <div class="alert-item ${severityClass}">
+          <strong>${alert.type}</strong>
+          <span>${alert.message}</span>
+        </div>
+      `;
+    })
+    .join("");
+};
+
+const setDecision = (decision) => {
+  if (!elements.decisionLabel) {
+    return;
+  }
+  if (!decision) {
+    elements.decisionLabel.textContent = "Pendiente";
+    if (elements.decisionNote) {
+      elements.decisionNote.textContent = "Completa la auditoría para una recomendación.";
+    }
+    return;
+  }
+  elements.decisionLabel.textContent = decision.label;
+  if (elements.decisionNote) {
+    elements.decisionNote.textContent = decision.note || "";
+  }
+};
+
+const setExecutiveSummary = (analysis) => {
+  if (!analysis) {
+    setGauge(0);
+    if (elements.exposureLevel) {
+      elements.exposureLevel.textContent = "Riesgo bajo";
+    }
+    if (elements.exposureNote) {
+      elements.exposureNote.textContent = "Ejecuta el radar para calcular exposición.";
+    }
+    renderIndices(null);
+    renderAlerts(null);
+    setDecision(null);
+    return;
+  }
+
+  const executive = analysis.executive;
+  const score = executive?.exposureScore ?? analysis.riskScore ?? 0;
+  setGauge(score);
+
+  if (elements.exposureLevel) {
+    elements.exposureLevel.textContent = executive?.exposureLevel || getLevelLabel(score);
+  }
+  if (elements.exposureNote) {
+    elements.exposureNote.textContent = executive?.summary || "Exposición calculada con ICET.";
+  }
+
+  renderIndices(executive?.indices);
+  renderAlerts(executive?.alerts);
+  setDecision(executive?.decision);
+
+  if (elements.detailPhysical) {
+    elements.detailPhysical.textContent = executive?.details?.physical || "Pendiente de evaluación.";
+  }
+  if (elements.detailSocial) {
+    elements.detailSocial.textContent = executive?.details?.social || "Pendiente de evaluación.";
+  }
+  if (elements.detailClimate) {
+    elements.detailClimate.textContent = executive?.details?.climate || "Pendiente de evaluación.";
+  }
+  if (elements.detailRegulatory) {
+    elements.detailRegulatory.textContent = executive?.details?.regulatory || "Pendiente de evaluación.";
+  }
+  if (elements.detailPolitical) {
+    elements.detailPolitical.textContent = executive?.details?.political || "Pendiente de evaluación.";
+  }
+
+  if (elements.capexValue) {
+    elements.capexValue.textContent = executive?.economic?.capex || "--";
+  }
+  if (elements.hydraulicCost) {
+    elements.hydraulicCost.textContent = executive?.economic?.hydraulic || "--";
+  }
+  if (elements.scenarioNote) {
+    elements.scenarioNote.textContent = executive?.economic?.scenario || "--";
+  }
+  if (elements.economicNote && executive?.economic?.note) {
+    elements.economicNote.textContent = executive.economic.note;
+  }
+};
+
 const metersToLat = (meters) => meters / 111320;
 const metersToLng = (meters, lat) =>
   meters / (111320 * Math.cos((lat * Math.PI) / 180));
@@ -425,6 +595,12 @@ const applyCase = (caseData) => {
   }
 
   setSources(caseData.sources);
+  setProjectMeta({
+    name: caseData.name,
+    coordinates: caseData.coordinates,
+    area: caseData.area_m2,
+    updatedAt: new Date().toISOString(),
+  });
 
   const polygon = buildRectanglePolygon({
     center: caseData.coordinates,
@@ -456,38 +632,21 @@ const refreshMapFromForm = () => {
       })
     : null;
   updateMap({ center: coords, polygon });
+  setProjectMeta({
+    name: elements.projectName.value || state.caseData?.name || "",
+    coordinates: coords,
+    area: state.caseData?.area_m2,
+    updatedAt: new Date().toISOString(),
+  });
 };
 
 const setLoading = (loading) => {
   elements.runAuditBtn.disabled = loading;
-  elements.runAuditBtn.textContent = loading ? "Ejecutando..." : "Ejecutar auditoría";
+  elements.runAuditBtn.textContent = loading ? "Ejecutando..." : "Ejecutar radar";
 };
 
-const updateResultSummary = (analysis) => {
-  if (!elements.resultHeadline || !elements.resultSummary) {
-    return;
-  }
-
-  if (!analysis) {
-    elements.resultHeadline.textContent = "Sin inconsistencias críticas";
-    elements.resultSummary.textContent = "Ejecuta la auditoría para ver los hallazgos.";
-    return;
-  }
-
-  if (analysis.inconsistency?.severity === "CRITICAL_ALERT") {
-    elements.resultHeadline.textContent = "Alerta crítica detectada";
-    elements.resultSummary.textContent = "Existe una contradicción material entre el estudio y la realidad técnica.";
-    return;
-  }
-
-  if (analysis.inconsistency) {
-    elements.resultHeadline.textContent = "Revisión recomendada";
-    elements.resultSummary.textContent = "Hay señales que requieren validación antes de presentar el estudio.";
-    return;
-  }
-
-  elements.resultHeadline.textContent = "Sin inconsistencias críticas";
-  elements.resultSummary.textContent = "No se detectaron conflictos automáticos en la auditoría.";
+const updateResultSummary = (_analysis) => {
+  return;
 };
 
 const buildRoadmap = (analysis) => {
@@ -501,6 +660,7 @@ const buildRoadmap = (analysis) => {
     `Proyecto: ${elements.projectName.value || "Sin título"}`,
     `Industria: ${elements.industry.value}`,
     `Escenario: ${elements.scenario.value}`,
+    `Decisión sugerida: ${analysis.executive?.decision?.label || "Pendiente"}`,
     "",
     "Acciones prioritarias:",
     `1. Verificar claims: ${analysis.inconsistency?.claimed || "N/A"}`,
@@ -523,41 +683,16 @@ const updateUI = (analysis) => {
     return;
   }
 
-  setGauge(analysis.riskScore || 0);
-  setKpis(analysis);
+  setExecutiveSummary(analysis);
   setEnvironment(analysis.environment);
   setSatelliteEvidence(analysis.satelliteEvidence);
   setRegulatoryAnchors(analysis);
-  updateResultSummary(analysis);
-
-  if (analysis.inconsistency) {
-    elements.claimedText.textContent = analysis.inconsistency.claimed;
-    elements.realityText.textContent = analysis.inconsistency.reality;
-    elements.legalText.textContent = analysis.inconsistency.legal;
-
-    if (analysis.inconsistency.severity === "CRITICAL_ALERT") {
-      elements.severityChip.textContent = "Crítico";
-      elements.severityChip.classList.add("alert");
-      if (elements.summaryStatus) {
-        elements.summaryStatus.textContent = "Crítico";
-      }
-    } else {
-      elements.severityChip.textContent = "Revisión";
-      elements.severityChip.classList.remove("alert");
-      if (elements.summaryStatus) {
-        elements.summaryStatus.textContent = "Revisión";
-      }
-    }
-  } else {
-    elements.claimedText.textContent = "—";
-    elements.realityText.textContent = "—";
-    elements.legalText.textContent = "—";
-    elements.severityChip.textContent = "Estable";
-    elements.severityChip.classList.remove("alert");
-    if (elements.summaryStatus) {
-      elements.summaryStatus.textContent = "Estable";
-    }
-  }
+  setProjectMeta({
+    name: elements.projectName.value || state.caseData?.name || "",
+    coordinates: getCoordinatesFromForm(),
+    area: state.caseData?.area_m2,
+    updatedAt: analysis.executive?.updatedAt || new Date().toISOString(),
+  });
 
   if (analysis.llmSummary) {
     appendLog("GPT", analysis.llmSummary);
@@ -732,19 +867,33 @@ const handleFile = (file) => {
 };
 
 const toggleLayer = (layer, visible) => {
+  if (!layer) {
+    return;
+  }
   layer.classList.toggle("hidden", !visible);
 };
 
 const initLayerControls = () => {
-  elements.layerBoundary.addEventListener("change", (event) => {
-    toggleLayer(mapLayers.boundary, event.target.checked);
-  });
-  elements.layerHydro.addEventListener("change", (event) => {
-    toggleLayer(mapLayers.hydro, event.target.checked);
-  });
-  elements.layerVegetation.addEventListener("change", (event) => {
-    toggleLayer(mapLayers.vegetation, event.target.checked);
-  });
+  if (elements.layerFlood) {
+    elements.layerFlood.addEventListener("change", (event) => {
+      toggleLayer(mapLayers.flood, event.target.checked);
+    });
+  }
+  if (elements.layerEco) {
+    elements.layerEco.addEventListener("change", (event) => {
+      toggleLayer(mapLayers.eco, event.target.checked);
+    });
+  }
+  if (elements.layerSocial) {
+    elements.layerSocial.addEventListener("change", (event) => {
+      toggleLayer(mapLayers.social, event.target.checked);
+    });
+  }
+  if (elements.layerZoning) {
+    elements.layerZoning.addEventListener("change", (event) => {
+      toggleLayer(mapLayers.zoning, event.target.checked);
+    });
+  }
 };
 
 const initMap = () => {
@@ -804,10 +953,14 @@ if (state.caseId && DEMO_CASES[state.caseId]) {
   elements.caseBadge.textContent = "Caso demo: ninguno";
 }
 initMap();
-setGauge(0);
-setKpis(null);
+setExecutiveSummary(null);
 setEnvironment(null);
 setSatelliteEvidence(null);
 setRegulatoryAnchors(null);
 setSources(null);
-updateResultSummary(null);
+setProjectMeta({
+  name: elements.projectName?.value || "",
+  coordinates: getCoordinatesFromForm(),
+  area: state.caseData?.area_m2,
+  updatedAt: null,
+});
