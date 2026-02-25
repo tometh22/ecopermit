@@ -29,6 +29,10 @@ Load the Lawen demo dataset (based on press sources) with:
 index.html?case=lawen
 ```
 
+## Boundary Polygon (Exact)
+
+Upload a `KML` or `GeoJSON` file in the **Datos del proyecto** section to draw the exact boundary polygon.
+
 ## Google Maps (Satellite)
 
 Provide a Google Maps JavaScript API key at runtime:

@@ -34,6 +34,8 @@ const createProject = (payload) => {
     industry: payload.industry || "",
     scenario: payload.scenario || "",
     coordinates: payload.coordinates || null,
+    boundary: payload.boundary || null,
+    fileText: payload.fileText || "",
     claims: payload.claims || "",
     specs: payload.specs || "",
     file: payload.file || null,

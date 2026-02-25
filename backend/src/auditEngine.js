@@ -143,10 +143,22 @@ const safeJsonParse = (text) => {
   }
 };
 
-const buildRegulatoryPrompt = ({ projectName, industry, scenario, coordinates, claims, specs, overlaps }) => {
+const buildRegulatoryPrompt = ({
+  projectName,
+  industry,
+  scenario,
+  coordinates,
+  boundary,
+  claims,
+  specs,
+  overlaps,
+  documentText,
+}) => {
   const overlapText = overlaps.length
     ? overlaps.map((zone) => `${zone.type} - ${zone.name} (${zone.law})`).join(" | ")
     : "None";
+  const boundaryText = boundary ? "Boundary polygon provided." : "No polygon provided.";
+  const excerpt = documentText ? documentText.slice(0, 2000) : "";
 
   return [
     "You are a regulatory auditor using the Global_Regulatory_Framework namespace.",
@@ -160,8 +172,11 @@ const buildRegulatoryPrompt = ({ projectName, industry, scenario, coordinates, c
     `Industry: ${industry || "Unknown"}`,
     `Scenario: ${scenario || "Unknown"}`,
     `Coordinates: ${coordinates ? `${coordinates.lat}, ${coordinates.lng}` : "Not provided"}`,
+    boundaryText,
     `Claims: ${claims || "None"}`,
     `Specs: ${specs || "None"}`,
+    excerpt ? "Document excerpt:" : "No document excerpt provided.",
+    excerpt,
     `Restricted zone overlaps: ${overlapText}`,
   ].join("\n");
 };
@@ -291,7 +306,7 @@ const computeExecutiveScore = (indices, penalties) => {
   return clamp(Math.round(base + penalty), 0, 100);
 };
 
-const buildExecutiveSummary = ({ caseId, overlaps, inconsistency, environment }) => {
+const buildExecutiveSummary = ({ caseId, overlaps, inconsistency, environment, extraAlerts = [] }) => {
   const caseMeta = demoCases[caseId];
   const indices = caseMeta?.executive?.indices || buildDefaultIndices({ overlaps, inconsistency, environment });
   const penalties = [];
@@ -305,7 +320,7 @@ const buildExecutiveSummary = ({ caseId, overlaps, inconsistency, environment })
 
   const exposureScore = computeExecutiveScore(indices, penalties);
   const exposureLevel = exposureScore >= 70 ? "Riesgo alto" : exposureScore >= 40 ? "Riesgo medio" : "Riesgo bajo";
-  const alerts =
+  const baseAlerts =
     caseMeta?.executive?.alerts ||
     (overlaps.length || inconsistency
       ? [
@@ -329,6 +344,8 @@ const buildExecutiveSummary = ({ caseId, overlaps, inconsistency, environment })
             : []),
         ]
       : []);
+
+  const alerts = [...baseAlerts, ...extraAlerts];
 
   const decision =
     caseMeta?.executive?.decision ||
@@ -389,18 +406,64 @@ const fetchRegulatoryReferences = (coordinates) => {
   return refs;
 };
 
-const checkRestrictedZones = (coordinates) => {
-  if (!coordinates) {
+const boundsFromPolygon = (boundary) => {
+  if (!boundary) {
+    return null;
+  }
+  const ring = boundary.type === "Polygon"
+    ? boundary.coordinates?.[0]
+    : boundary.type === "MultiPolygon"
+      ? boundary.coordinates?.[0]?.[0]
+      : boundary.coordinates?.[0];
+  if (!Array.isArray(ring)) {
+    return null;
+  }
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  for (const coord of ring) {
+    const [lng, lat] = coord;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      continue;
+    }
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+    minLng = Math.min(minLng, lng);
+    maxLng = Math.max(maxLng, lng);
+  }
+  if (!Number.isFinite(minLat) || !Number.isFinite(maxLat)) {
+    return null;
+  }
+  return { minLat, maxLat, minLng, maxLng };
+};
+
+const checkRestrictedZones = (coordinates, boundary) => {
+  const bounds = boundary ? boundsFromPolygon(boundary) : null;
+  if (!coordinates && !bounds) {
     return [];
   }
 
   return restrictedZones.filter((zone) => {
-    return (
-      coordinates.lat >= zone.bounds.minLat &&
-      coordinates.lat <= zone.bounds.maxLat &&
-      coordinates.lng >= zone.bounds.minLng &&
-      coordinates.lng <= zone.bounds.maxLng
-    );
+    if (bounds) {
+      const intersects =
+        bounds.minLat <= zone.bounds.maxLat &&
+        bounds.maxLat >= zone.bounds.minLat &&
+        bounds.minLng <= zone.bounds.maxLng &&
+        bounds.maxLng >= zone.bounds.minLng;
+      if (intersects) {
+        return true;
+      }
+    }
+    if (coordinates) {
+      return (
+        coordinates.lat >= zone.bounds.minLat &&
+        coordinates.lat <= zone.bounds.maxLat &&
+        coordinates.lng >= zone.bounds.minLng &&
+        coordinates.lng <= zone.bounds.maxLng
+      );
+    }
+    return false;
   });
 };
 
@@ -430,6 +493,7 @@ const buildLogs = ({
   riskScore,
   environment,
   satelliteEvidence,
+  territorialSignals,
   executive,
   llmUsed,
   llmError,
@@ -548,7 +612,14 @@ const buildLogs = ({
   if (satelliteEvidence) {
     logs.push({
       agent: "Satellite_Evidence_Engine",
-      message: "Satellite evidence pack loaded (demo mode).",
+      message: "Territorial evidence pack loaded.",
+    });
+  }
+
+  if (territorialSignals?.error) {
+    logs.push({
+      agent: "Territorial_GIS",
+      message: `GIS warning: ${territorialSignals.error}`,
     });
   }
 
@@ -567,25 +638,32 @@ const runAudit = async ({
   claims,
   specs,
   coordinates,
+  boundary,
+  documentText,
   uploadedFileName,
   industry,
   scenario,
   environment,
+  territorialSignals,
   contextRiskAdjustment = 0,
   caseId = "",
 }) => {
   let inconsistency = detectInconsistency(claims, specs);
-  const overlaps = checkRestrictedZones(coordinates);
+  const overlaps = checkRestrictedZones(coordinates, boundary);
   let regulatoryRefs = fetchRegulatoryReferences(coordinates);
   let riskAdjustment = 0;
   let llmSummary = "";
   let llmError = "";
   let llmUsed = false;
   const caseMeta = demoCases[caseId];
-  const satelliteEvidence = buildSatelliteEvidence({ caseId });
+  const satelliteEvidence = territorialSignals?.evidence || buildSatelliteEvidence({ caseId });
+  const extraAlerts = territorialSignals?.alerts || [];
 
   if (caseMeta?.regulatoryRefs?.length) {
     regulatoryRefs = Array.from(new Set([...regulatoryRefs, ...caseMeta.regulatoryRefs]));
+  }
+  if (territorialSignals?.regulatoryRefs?.length) {
+    regulatoryRefs = Array.from(new Set([...regulatoryRefs, ...territorialSignals.regulatoryRefs]));
   }
 
   if (isOpenAIConfigured()) {
@@ -597,9 +675,11 @@ const runAudit = async ({
           industry,
           scenario,
           coordinates,
+          boundary,
           claims,
           specs,
           overlaps,
+          documentText,
         }),
         instructions: "Return JSON only.",
         reasoningEffort: OPENAI_REASONING_EFFORT || undefined,
@@ -650,6 +730,7 @@ const runAudit = async ({
     overlaps,
     inconsistency,
     environment,
+    extraAlerts,
   });
 
   const riskScore = computeRisk({
@@ -668,6 +749,7 @@ const runAudit = async ({
     environment,
     contextRiskAdjustment,
     satelliteEvidence,
+    territorialSignals,
     caseId,
     executive,
     llmSummary,
@@ -684,6 +766,7 @@ const runAudit = async ({
     riskScore,
     environment,
     satelliteEvidence,
+    territorialSignals,
     executive,
     llmUsed,
     llmError,

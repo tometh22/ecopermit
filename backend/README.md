@@ -14,12 +14,12 @@ Server defaults to `http://localhost:5050`.
 
 - `GET /api/health`
 - `POST /api/projects` (multipart/form-data)
-  - Fields: `name`, `industry`, `scenario`, `lat`, `lng`, `claims`, `specs`, `caseId`
+  - Fields: `name`, `industry`, `scenario`, `lat`, `lng`, `claims`, `specs`, `caseId`, `boundary` (GeoJSON string)
   - File: `file` (PDF/TXT)
 - `GET /api/projects`
 - `GET /api/projects/:id`
 - `POST /api/audits`
-  - Body: `{ projectId, caseId }` or `{ projectName, claims, specs, lat, lng, caseId }`
+  - Body: `{ projectId, caseId, boundary }` or `{ projectName, claims, specs, lat, lng, caseId, boundary }`
 - `GET /api/audits/:id`
 - `GET /api/audits/:id/stream` (Server-Sent Events)
 
@@ -30,4 +30,5 @@ Server defaults to `http://localhost:5050`.
 - You can override the model with `OPENAI_MODEL` and tweak reasoning with `OPENAI_REASONING_EFFORT`.
 - Optional environment signals: set `GOOGLE_ENV_API_KEY` to enable Air Quality + Weather context.
 - Optional satellite pack: `SATELLITE_MODE=demo` (default) or `disabled`.
+- Optional territorial signals (OSM/Overpass): `OVERPASS_ENDPOINT`, `OVERPASS_RADIUS_M`, `OVERPASS_TIMEOUT_MS`.
 - Data is stored locally in `backend/data/db.json`.

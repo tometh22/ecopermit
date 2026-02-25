@@ -70,6 +70,7 @@ const state = {
   mapMarker: null,
   mapPolygon: null,
   pendingMap: null,
+  boundary: null,
 };
 
 const elements = {
@@ -79,6 +80,7 @@ const elements = {
   exportBtn: document.getElementById("exportBtn"),
   loadLawenBtn: document.getElementById("loadLawenBtn"),
   caseBadge: document.getElementById("caseBadge"),
+  boundaryInput: document.getElementById("boundaryInput"),
   projectTitle: document.getElementById("projectTitle"),
   projectLocation: document.getElementById("projectLocation"),
   projectArea: document.getElementById("projectArea"),
@@ -326,6 +328,112 @@ const setSources = (sources) => {
         `<a href="${source.url}" target="_blank" rel="noreferrer">${source.title}</a>`
     )
     .join("");
+};
+
+const extractPolygonFromGeoJSON = (geojson) => {
+  if (!geojson) {
+    return null;
+  }
+  if (geojson.type === "FeatureCollection" && Array.isArray(geojson.features)) {
+    return extractPolygonFromGeoJSON(geojson.features[0]?.geometry);
+  }
+  if (geojson.type === "Feature") {
+    return extractPolygonFromGeoJSON(geojson.geometry);
+  }
+  if (geojson.type === "Polygon") {
+    return geojson.coordinates?.[0] || null;
+  }
+  if (geojson.type === "MultiPolygon") {
+    return geojson.coordinates?.[0]?.[0] || null;
+  }
+  return null;
+};
+
+const parseGeoJSONBoundary = (text) => {
+  try {
+    const parsed = JSON.parse(text);
+    const ring = extractPolygonFromGeoJSON(parsed);
+    if (!ring) {
+      return null;
+    }
+    const coords = ring.map(([lng, lat]) => ({ lat, lng }));
+    return { geojson: parsed, coords };
+  } catch (error) {
+    return null;
+  }
+};
+
+const parseKmlBoundary = (text) => {
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(text, "text/xml");
+  const coordNode = xml.querySelector("Polygon coordinates, LinearRing coordinates, coordinates");
+  if (!coordNode) {
+    return null;
+  }
+  const raw = coordNode.textContent || "";
+  const points = raw
+    .trim()
+    .split(/\s+/)
+    .map((entry) => entry.split(",").map(Number))
+    .filter((parts) => parts.length >= 2 && Number.isFinite(parts[0]) && Number.isFinite(parts[1]))
+    .map(([lng, lat]) => ({ lat, lng }));
+
+  if (points.length < 3) {
+    return null;
+  }
+
+  const geojson = {
+    type: "Polygon",
+    coordinates: [[...points, points[0]].map((point) => [point.lng, point.lat])],
+  };
+
+  return { geojson, coords: points };
+};
+
+const computeCentroid = (points) => {
+  if (!points || points.length === 0) {
+    return null;
+  }
+  let latSum = 0;
+  let lngSum = 0;
+  for (const point of points) {
+    latSum += point.lat;
+    lngSum += point.lng;
+  }
+  return { lat: latSum / points.length, lng: lngSum / points.length };
+};
+
+const handleBoundaryFile = (file) => {
+  if (!file) {
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const text = String(event.target.result || "");
+    let parsed = null;
+    if (file.name.toLowerCase().endsWith(".kml")) {
+      parsed = parseKmlBoundary(text);
+    } else {
+      parsed = parseGeoJSONBoundary(text);
+    }
+    if (!parsed) {
+      appendLog("Sistema", "No se pudo leer el polígono. Verifica el archivo.");
+      return;
+    }
+    state.boundary = parsed.geojson;
+    const center = computeCentroid(parsed.coords) || parsed.coords[0];
+    elements.lat.value = center.lat.toFixed(5);
+    elements.lng.value = center.lng.toFixed(5);
+    updateMap({ center, polygon: parsed.coords });
+    setProjectMeta({
+      name: elements.projectName.value || state.caseData?.name || "",
+      coordinates: center,
+      area: state.caseData?.area_m2,
+      updatedAt: new Date().toISOString(),
+    });
+    appendLog("Sistema", "Polígono cargado correctamente.");
+  };
+  reader.readAsText(file);
 };
 
 const formatLatLng = (coords) => {
@@ -582,6 +690,7 @@ const applyCase = (caseData) => {
   }
   state.caseId = caseData.id;
   state.caseData = caseData;
+  state.boundary = null;
   elements.projectName.value = caseData.name;
   elements.industry.value = caseData.industry;
   elements.scenario.value = caseData.scenario;
@@ -624,13 +733,19 @@ const refreshMapFromForm = () => {
   if (!coords) {
     return;
   }
-  const polygon = state.caseData
-    ? buildRectanglePolygon({
-        center: coords,
-        area: state.caseData.area_m2,
-        perimeter: state.caseData.perimeter_m,
-      })
-    : null;
+  let polygon = null;
+  if (state.boundary) {
+    const ring = extractPolygonFromGeoJSON(state.boundary);
+    if (ring) {
+      polygon = ring.map(([lng, lat]) => ({ lat, lng }));
+    }
+  } else if (state.caseData) {
+    polygon = buildRectanglePolygon({
+      center: coords,
+      area: state.caseData.area_m2,
+      perimeter: state.caseData.perimeter_m,
+    });
+  }
   updateMap({ center: coords, polygon });
   setProjectMeta({
     name: elements.projectName.value || state.caseData?.name || "",
@@ -709,6 +824,9 @@ const createProject = async () => {
   formData.append("claims", elements.claims.value || "");
   formData.append("specs", elements.specs.value || "");
   formData.append("caseId", state.caseId || "");
+  if (state.boundary) {
+    formData.append("boundary", JSON.stringify(state.boundary));
+  }
   if (selectedFile) {
     formData.append("file", selectedFile);
   }
@@ -728,10 +846,23 @@ const createProject = async () => {
 };
 
 const createAudit = async (projectId) => {
+  const payload = { projectId, caseId: state.caseId || "" };
+  if (!projectId) {
+    payload.projectName = elements.projectName.value || "";
+    payload.industry = elements.industry.value || "";
+    payload.scenario = elements.scenario.value || "";
+    payload.lat = elements.lat.value || "";
+    payload.lng = elements.lng.value || "";
+    payload.claims = elements.claims.value || "";
+    payload.specs = elements.specs.value || "";
+  }
+  if (state.boundary) {
+    payload.boundary = state.boundary;
+  }
   const response = await fetch(`${API_BASE_URL}/api/audits`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ projectId, caseId: state.caseId || "" }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -938,6 +1069,9 @@ const initMap = () => {
 const bindEvents = () => {
   elements.chooseFileBtn.addEventListener("click", () => elements.fileInput.click());
   elements.fileInput.addEventListener("change", (event) => handleFile(event.target.files[0]));
+  if (elements.boundaryInput) {
+    elements.boundaryInput.addEventListener("change", (event) => handleBoundaryFile(event.target.files[0]));
+  }
   elements.runAuditBtn.addEventListener("click", runAudit);
   elements.exportBtn.addEventListener("click", exportRoadmap);
   if (elements.loadLawenBtn) {

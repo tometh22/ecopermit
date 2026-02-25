@@ -1,11 +1,14 @@
 const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const dotenv = require("dotenv");
+const pdfParse = require("pdf-parse");
 const { createProject, listProjects, getProject, createAudit, getAudit } = require("./storage");
 const { runAudit } = require("./auditEngine");
 const { fetchEnvironmentalContext } = require("./contextService");
+const { fetchTerritorialSignals } = require("./territorialService");
 
 dotenv.config();
 
@@ -41,33 +44,69 @@ const parseCoordinates = (lat, lng) => {
   return { lat: latNum, lng: lngNum };
 };
 
+const parseBoundary = (boundary) => {
+  if (!boundary) {
+    return null;
+  }
+  if (typeof boundary === "object") {
+    return boundary;
+  }
+  try {
+    return JSON.parse(boundary);
+  } catch (error) {
+    return null;
+  }
+};
+
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-app.post("/api/projects", upload.single("file"), (req, res) => {
-  const coordinates = parseCoordinates(req.body.lat, req.body.lng);
-  const file = req.file
-    ? {
-        filename: req.file.filename,
-        originalName: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size,
+app.post("/api/projects", upload.single("file"), async (req, res, next) => {
+  try {
+    const coordinates = parseCoordinates(req.body.lat, req.body.lng);
+    const boundary = parseBoundary(req.body.boundary);
+    const file = req.file
+      ? {
+          filename: req.file.filename,
+          originalName: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+        }
+      : null;
+
+    let fileText = "";
+    if (req.file?.path) {
+      try {
+        if (req.file.mimetype === "application/pdf") {
+          const buffer = fs.readFileSync(req.file.path);
+          const parsed = await pdfParse(buffer);
+          fileText = parsed.text || "";
+        } else if (req.file.mimetype === "text/plain") {
+          fileText = fs.readFileSync(req.file.path, "utf-8");
+        }
+      } catch (error) {
+        fileText = "";
       }
-    : null;
+    }
 
-  const project = createProject({
-    caseId: req.body.caseId,
-    name: req.body.name,
-    industry: req.body.industry,
-    scenario: req.body.scenario,
-    coordinates,
-    claims: req.body.claims,
-    specs: req.body.specs,
-    file,
-  });
+    const project = createProject({
+      caseId: req.body.caseId,
+      name: req.body.name,
+      industry: req.body.industry,
+      scenario: req.body.scenario,
+      coordinates,
+      boundary,
+      claims: req.body.claims,
+      specs: req.body.specs,
+      file,
+      fileText: fileText.slice(0, 12000),
+    });
 
-  res.status(201).json({ project });
+    res.status(201).json({ project });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/projects", (_req, res) => {
@@ -102,8 +141,11 @@ app.post("/api/audits", async (req, res, next) => {
     const specs = project?.specs || req.body.specs || "";
     const uploadedFileName = project?.file?.originalName || "";
     const caseId = project?.caseId || req.body.caseId || "";
+    const boundary = project?.boundary || parseBoundary(req.body.boundary);
+    const documentText = project?.fileText || req.body.documentText || "";
 
     const environment = await fetchEnvironmentalContext(coordinates);
+    const territorialSignals = await fetchTerritorialSignals({ coordinates, boundary });
 
     const { analysis, logs } = await runAudit({
       projectName,
@@ -112,8 +154,11 @@ app.post("/api/audits", async (req, res, next) => {
       claims,
       specs,
       coordinates,
+      boundary,
+      documentText,
       uploadedFileName,
       environment,
+      territorialSignals,
       contextRiskAdjustment: environment?.riskAdjustment ?? 0,
       caseId,
     });
