@@ -9,6 +9,7 @@ const { createProject, listProjects, getProject, createAudit, getAudit } = requi
 const { runAudit } = require("./auditEngine");
 const { fetchEnvironmentalContext } = require("./contextService");
 const { fetchTerritorialSignals } = require("./territorialService");
+const { fetchPlanetSignals } = require("./planetService");
 
 dotenv.config();
 
@@ -146,6 +147,7 @@ app.post("/api/audits", async (req, res, next) => {
 
     const environment = await fetchEnvironmentalContext(coordinates);
     const territorialSignals = await fetchTerritorialSignals({ coordinates, boundary });
+    const planetSignals = await fetchPlanetSignals({ coordinates, boundary });
 
     const { analysis, logs } = await runAudit({
       projectName,
@@ -159,6 +161,7 @@ app.post("/api/audits", async (req, res, next) => {
       uploadedFileName,
       environment,
       territorialSignals,
+      planetSignals,
       contextRiskAdjustment: environment?.riskAdjustment ?? 0,
       caseId,
     });

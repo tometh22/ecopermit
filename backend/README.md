@@ -31,4 +31,5 @@ Server defaults to `http://localhost:5050`.
 - Optional environment signals: set `GOOGLE_ENV_API_KEY` to enable Air Quality + Weather context.
 - Optional satellite pack: `SATELLITE_MODE=demo` (default) or `disabled`.
 - Optional territorial signals (OSM/Overpass): `OVERPASS_ENDPOINT`, `OVERPASS_RADIUS_M`, `OVERPASS_TIMEOUT_MS`.
+- Optional Planet Data API: `PLANET_API_KEY`, `PLANET_ITEM_TYPES`, `PLANET_LOOKBACK_DAYS`, `PLANET_MAX_CLOUD`.
 - Data is stored locally in `backend/data/db.json`.

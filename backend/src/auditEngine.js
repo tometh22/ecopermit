@@ -494,6 +494,7 @@ const buildLogs = ({
   environment,
   satelliteEvidence,
   territorialSignals,
+  planetSignals,
   executive,
   llmUsed,
   llmError,
@@ -623,6 +624,15 @@ const buildLogs = ({
     });
   }
 
+  if (planetSignals) {
+    logs.push({
+      agent: "Planet_Data_API",
+      message: planetSignals.error
+        ? `Planet warning: ${planetSignals.error}`
+        : `Planet scenes: ${planetSignals.count || 0}. Latest ${planetSignals.latestAcquired || "N/A"}.`,
+    });
+  }
+
   if (llmError) {
     logs.push({
       agent: "OpenAI_Reasoning_Engine",
@@ -645,6 +655,7 @@ const runAudit = async ({
   scenario,
   environment,
   territorialSignals,
+  planetSignals,
   contextRiskAdjustment = 0,
   caseId = "",
 }) => {
@@ -657,13 +668,40 @@ const runAudit = async ({
   let llmUsed = false;
   const caseMeta = demoCases[caseId];
   const satelliteEvidence = territorialSignals?.evidence || buildSatelliteEvidence({ caseId });
-  const extraAlerts = territorialSignals?.alerts || [];
+  const extraAlerts = [...(territorialSignals?.alerts || [])];
 
   if (caseMeta?.regulatoryRefs?.length) {
     regulatoryRefs = Array.from(new Set([...regulatoryRefs, ...caseMeta.regulatoryRefs]));
   }
   if (territorialSignals?.regulatoryRefs?.length) {
     regulatoryRefs = Array.from(new Set([...regulatoryRefs, ...territorialSignals.regulatoryRefs]));
+  }
+
+  if (planetSignals?.latestAcquired) {
+    const daysOld = Math.round(
+      (Date.now() - new Date(planetSignals.latestAcquired).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysOld > 180) {
+      extraAlerts.push({
+        type: "Satelital",
+        message: `No hay imágenes recientes (última hace ${daysOld} días).`,
+        severity: "Media",
+      });
+    }
+  } else if (planetSignals?.count === 0) {
+    extraAlerts.push({
+      type: "Satelital",
+      message: "Sin escenas satelitales detectadas en el período analizado.",
+      severity: "Media",
+    });
+  }
+
+  if (Number.isFinite(planetSignals?.avgCloudCover) && planetSignals.avgCloudCover > 0.6) {
+    extraAlerts.push({
+      type: "Satelital",
+      message: "Alta nubosidad en escenas recientes.",
+      severity: "Media",
+    });
   }
 
   if (isOpenAIConfigured()) {
@@ -750,6 +788,7 @@ const runAudit = async ({
     contextRiskAdjustment,
     satelliteEvidence,
     territorialSignals,
+    planetSignals,
     caseId,
     executive,
     llmSummary,
@@ -767,6 +806,7 @@ const runAudit = async ({
     environment,
     satelliteEvidence,
     territorialSignals,
+    planetSignals,
     executive,
     llmUsed,
     llmError,

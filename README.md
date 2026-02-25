@@ -62,6 +62,17 @@ Satellite evidence is currently simulated in demo mode. Configure with:
 SATELLITE_MODE=demo
 ```
 
+## Planet Data API (Opcional)
+
+Configura la API key en el backend para obtener señales reales de escenas:
+
+```
+PLANET_API_KEY=YOUR_PLANET_API_KEY
+PLANET_ITEM_TYPES=PSScene
+PLANET_LOOKBACK_DAYS=365
+PLANET_MAX_CLOUD=
+```
+
 ## Demo Logic
 
 - Regulatory RAG: Simulated retrieval from `Global_Regulatory_Framework` with optional GPT enrichment.

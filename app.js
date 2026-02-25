@@ -134,6 +134,11 @@ const elements = {
   satVegetation: document.getElementById("satVegetation"),
   satVegetationNote: document.getElementById("satVegetationNote"),
   satSource: document.getElementById("satSource"),
+  planetLast: document.getElementById("planetLast"),
+  planetCount: document.getElementById("planetCount"),
+  planetCloud: document.getElementById("planetCloud"),
+  planetTypes: document.getElementById("planetTypes"),
+  planetNote: document.getElementById("planetNote"),
   regulatoryList: document.getElementById("regulatoryList"),
   overlapList: document.getElementById("overlapList"),
   sourcesList: document.getElementById("sourcesList"),
@@ -292,6 +297,36 @@ const setSatelliteEvidence = (evidence) => {
     elements.satSource.textContent = evidence.source
       ? `Fuente: ${evidence.source}`
       : "Fuente: integración satelital pendiente.";
+  }
+};
+
+const setPlanetSignals = (signals) => {
+  if (!elements.planetLast) {
+    return;
+  }
+  if (!signals || signals.error) {
+    elements.planetLast.textContent = "--";
+    elements.planetCount.textContent = "--";
+    elements.planetCloud.textContent = "--";
+    elements.planetTypes.textContent = "--";
+    if (elements.planetNote) {
+      elements.planetNote.textContent = signals?.error
+        ? `Planet: ${signals.error}`
+        : "Planet no configurado.";
+    }
+    return;
+  }
+
+  elements.planetLast.textContent = signals.latestAcquired
+    ? new Date(signals.latestAcquired).toLocaleDateString()
+    : "--";
+  elements.planetCount.textContent = Number.isFinite(signals.count) ? String(signals.count) : "--";
+  elements.planetCloud.textContent = Number.isFinite(signals.avgCloudCover)
+    ? `${Math.round(signals.avgCloudCover * 100)}%`
+    : "--";
+  elements.planetTypes.textContent = Array.isArray(signals.itemTypes) ? signals.itemTypes.join(", ") : "--";
+  if (elements.planetNote) {
+    elements.planetNote.textContent = signals.source || "Planet Data API";
   }
 };
 
@@ -801,6 +836,7 @@ const updateUI = (analysis) => {
   setExecutiveSummary(analysis);
   setEnvironment(analysis.environment);
   setSatelliteEvidence(analysis.satelliteEvidence);
+  setPlanetSignals(analysis.planetSignals);
   setRegulatoryAnchors(analysis);
   setProjectMeta({
     name: elements.projectName.value || state.caseData?.name || "",
@@ -1090,6 +1126,7 @@ initMap();
 setExecutiveSummary(null);
 setEnvironment(null);
 setSatelliteEvidence(null);
+setPlanetSignals(null);
 setRegulatoryAnchors(null);
 setSources(null);
 setProjectMeta({
