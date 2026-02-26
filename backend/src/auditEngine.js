@@ -8,6 +8,7 @@ const {
 
 const OPENAI_REASONING_EFFORT = process.env.OPENAI_REASONING_EFFORT || "";
 const SATELLITE_MODE = (process.env.SATELLITE_MODE || "demo").toLowerCase();
+const EIA_EXTRACT_MODE = (process.env.EIA_EXTRACT_MODE || "auto").toLowerCase();
 
 const demoCases = {
   lawen: {
@@ -141,6 +142,193 @@ const safeJsonParse = (text) => {
   } catch (error) {
     return null;
   }
+};
+
+const buildEiaPrompt = (documentText) => {
+  const excerpt = (documentText || "").slice(0, 9000);
+  return [
+    "You are extracting structured facts from an Environmental Impact Assessment (EIA).",
+    "Return JSON only with keys:",
+    "- project_name (string)",
+    "- location (string)",
+    "- area_m2 (number or null)",
+    "- lots (number or null)",
+    "- density_ha (number or null)",
+    "- water_withdrawal_m3_day (number or null)",
+    "- buffer_m (number or null)",
+    "- hydrology: { discharge_to_water: boolean|null, drainage: boolean|null, mentions_flooding: boolean|null }",
+    "- vegetation: { mentions_forest: boolean|null, removal_planned: boolean|null }",
+    "- wetlands: { mentions_wetland: boolean|null, states_no_wetland: boolean|null }",
+    "- claims: array of key environmental claims (strings)",
+    "- specs: array of engineering actions (strings)",
+    "- mitigations: array of mitigation measures (strings)",
+    "- notes: string (optional)",
+    "",
+    "If a field is not found, return null or empty array.",
+    "",
+    "EIA text:",
+    excerpt,
+  ].join("\n");
+};
+
+const normalizeBoolean = (value) => {
+  if (value === true || value === false) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const text = value.toLowerCase().trim();
+    if (["yes", "si", "sí", "true", "verdadero"].includes(text)) {
+      return true;
+    }
+    if (["no", "false", "falso"].includes(text)) {
+      return false;
+    }
+  }
+  return null;
+};
+
+const extractEiaInsights = async (documentText) => {
+  if (!documentText || EIA_EXTRACT_MODE === "disabled" || !isOpenAIConfigured()) {
+    return null;
+  }
+
+  try {
+    const response = await createResponse({
+      input: buildEiaPrompt(documentText),
+      instructions: "Return JSON only.",
+      reasoningEffort: OPENAI_REASONING_EFFORT || undefined,
+    });
+    const outputText = extractOutputText(response);
+    const parsed = safeJsonParse(outputText);
+    if (!parsed) {
+      return { error: "Invalid EIA extraction output." };
+    }
+
+    const hydrology = parsed.hydrology || {};
+    const vegetation = parsed.vegetation || {};
+    const wetlands = parsed.wetlands || {};
+
+    return {
+      project_name: parsed.project_name || "",
+      location: parsed.location || "",
+      area_m2: Number.isFinite(parsed.area_m2) ? parsed.area_m2 : null,
+      lots: Number.isFinite(parsed.lots) ? parsed.lots : null,
+      density_ha: Number.isFinite(parsed.density_ha) ? parsed.density_ha : null,
+      water_withdrawal_m3_day: Number.isFinite(parsed.water_withdrawal_m3_day)
+        ? parsed.water_withdrawal_m3_day
+        : null,
+      buffer_m: Number.isFinite(parsed.buffer_m) ? parsed.buffer_m : null,
+      hydrology: {
+        discharge_to_water: normalizeBoolean(hydrology.discharge_to_water),
+        drainage: normalizeBoolean(hydrology.drainage),
+        mentions_flooding: normalizeBoolean(hydrology.mentions_flooding),
+      },
+      vegetation: {
+        mentions_forest: normalizeBoolean(vegetation.mentions_forest),
+        removal_planned: normalizeBoolean(vegetation.removal_planned),
+      },
+      wetlands: {
+        mentions_wetland: normalizeBoolean(wetlands.mentions_wetland),
+        states_no_wetland: normalizeBoolean(wetlands.states_no_wetland),
+      },
+      claims: Array.isArray(parsed.claims) ? parsed.claims.map(String) : [],
+      specs: Array.isArray(parsed.specs) ? parsed.specs.map(String) : [],
+      mitigations: Array.isArray(parsed.mitigations) ? parsed.mitigations.map(String) : [],
+      notes: parsed.notes || "",
+    };
+  } catch (error) {
+    return { error: error.message || "EIA extraction failed." };
+  }
+};
+
+const pickClaimsSpecs = ({ claims, specs, eia }) => {
+  const derivedClaims = (claims || "").trim()
+    ? claims
+    : eia?.claims?.length
+      ? eia.claims.join(" ")
+      : "";
+  const derivedSpecs = (specs || "").trim()
+    ? specs
+    : eia?.specs?.length
+      ? eia.specs.join(" ")
+      : "";
+  return { derivedClaims, derivedSpecs };
+};
+
+const detectEvidenceContradictions = ({
+  claimsText,
+  specsText,
+  eia,
+  territorialSignals,
+  planetProcessingSignals,
+}) => {
+  const contradictions = [];
+  const claims = normalize(claimsText);
+  const specs = normalize(specsText);
+  const eiaClaims = normalize((eia?.claims || []).join(" "));
+
+  const summary = territorialSignals?.summary;
+  const hasWaterEvidence = Boolean(
+    (summary && summary.waterways + summary.waters > 0) ||
+    (summary && summary.wetlands > 0) ||
+    (Number.isFinite(planetProcessingSignals?.ndwiMean) && planetProcessingSignals.ndwiMean >= 0.2)
+  );
+  const hasWetlandEvidence = Boolean(
+    (summary && summary.wetlands > 0) ||
+    (Number.isFinite(planetProcessingSignals?.ndwiMean) && planetProcessingSignals.ndwiMean >= 0.2)
+  );
+  const hasForestEvidence = Boolean(
+    (summary && summary.forests > 0) ||
+    (Number.isFinite(planetProcessingSignals?.ndviMean) && planetProcessingSignals.ndviMean >= 0.55)
+  );
+
+  const neutralPhrases = ["neutral impact", "impacto neutral", "sin impacto", "no altera", "no afect"];
+  const waterTokens = ["agua", "hídr", "hidro", "arroyo"];
+  const mentionsNeutralWater = (text) =>
+    neutralPhrases.some((phrase) => text.includes(phrase)) &&
+    waterTokens.some((token) => text.includes(token));
+  const declaresNoWaterImpact = mentionsNeutralWater(claims) || mentionsNeutralWater(eiaClaims);
+
+  const mentionsDischarge =
+    specs.includes("descarga") ||
+    specs.includes("efluente") ||
+    specs.includes("vuelco") ||
+    specs.includes("planta de tratamiento") ||
+    specs.includes("desagüe");
+
+  if (declaresNoWaterImpact && (mentionsDischarge || eia?.hydrology?.discharge_to_water)) {
+    contradictions.push({
+      type: "Hídrico",
+      message: "El estudio declara impacto hídrico bajo/neutral pero describe descargas o efluentes.",
+      severity: "Bloqueante",
+    });
+  }
+
+  if (eia?.wetlands?.states_no_wetland && hasWetlandEvidence) {
+    contradictions.push({
+      type: "Ambiental",
+      message: "El estudio indica ausencia de humedal pero la evidencia satelital/GIS sugiere humedad.",
+      severity: "Alta",
+    });
+  }
+
+  if (eia?.vegetation?.removal_planned && hasForestEvidence && (claims.includes("preserv") || eiaClaims.includes("preserv"))) {
+    contradictions.push({
+      type: "Vegetación",
+      message: "Se declara preservación del bosque pero hay remoción planificada con cobertura densa.",
+      severity: "Media",
+    });
+  }
+
+  if (eia?.hydrology?.mentions_flooding === false && hasWaterEvidence) {
+    contradictions.push({
+      type: "Hídrico",
+      message: "El estudio minimiza riesgo hídrico pero se detectan cuerpos de agua en el área.",
+      severity: "Media",
+    });
+  }
+
+  return contradictions;
 };
 
 const buildRegulatoryPrompt = ({
@@ -535,6 +723,8 @@ const buildLogs = ({
   territorialSignals,
   planetSignals,
   planetProcessingSignals,
+  eia,
+  contradictions,
   executive,
   llmUsed,
   llmError,
@@ -549,6 +739,14 @@ const buildLogs = ({
       message: uploadedFileName
         ? `Attached study file: ${uploadedFileName}.`
         : "No study file attached; continuing with manual inputs.",
+    },
+    {
+      agent: "EIA_Extractor",
+      message: eia?.error
+        ? `EIA extraction error: ${eia.error}`
+        : eia
+          ? "EIA parsed and structured for analysis."
+          : "EIA extraction skipped.",
     },
     {
       agent: "GeoJSON_Layer_Controller",
@@ -688,6 +886,13 @@ const buildLogs = ({
     });
   }
 
+  if (contradictions?.length) {
+    logs.push({
+      agent: "Contradiction_Engine",
+      message: `Contradictions detected: ${contradictions.length}.`,
+    });
+  }
+
   if (llmError) {
     logs.push({
       agent: "OpenAI_Reasoning_Engine",
@@ -715,7 +920,9 @@ const runAudit = async ({
   contextRiskAdjustment = 0,
   caseId = "",
 }) => {
-  let inconsistency = detectInconsistency(claims, specs);
+  const eia = await extractEiaInsights(documentText);
+  const { derivedClaims, derivedSpecs } = pickClaimsSpecs({ claims, specs, eia });
+  let inconsistency = detectInconsistency(derivedClaims, derivedSpecs);
   const overlaps = checkRestrictedZones(coordinates, boundary);
   let regulatoryRefs = fetchRegulatoryReferences(coordinates);
   let riskAdjustment = 0;
@@ -725,6 +932,23 @@ const runAudit = async ({
   const caseMeta = demoCases[caseId];
   const satelliteEvidence = buildSatelliteEvidence({ caseId, territorialSignals, planetProcessingSignals });
   const extraAlerts = [...(territorialSignals?.alerts || [])];
+  const contradictions = detectEvidenceContradictions({
+    claimsText: derivedClaims,
+    specsText: derivedSpecs,
+    eia,
+    territorialSignals,
+    planetProcessingSignals,
+  });
+
+  if (contradictions.length) {
+    contradictions.forEach((item) => {
+      extraAlerts.push({
+        type: item.type || "EIA",
+        message: item.message,
+        severity: item.severity || "Media",
+      });
+    });
+  }
 
   if (caseMeta?.regulatoryRefs?.length) {
     regulatoryRefs = Array.from(new Set([...regulatoryRefs, ...caseMeta.regulatoryRefs]));
@@ -794,8 +1018,8 @@ const runAudit = async ({
           scenario,
           coordinates,
           boundary,
-          claims,
-          specs,
+          claims: derivedClaims,
+          specs: derivedSpecs,
           overlaps,
           documentText,
         }),
@@ -818,8 +1042,8 @@ const runAudit = async ({
           } else {
             inconsistency = {
               severity: "Review",
-              claimed: claims || "No explicit claim provided.",
-              reality: specs || "No engineering specs provided.",
+              claimed: derivedClaims || "No explicit claim provided.",
+              reality: derivedSpecs || "No engineering specs provided.",
               legal: parsed.legal_conflict.trim(),
             };
           }
@@ -870,6 +1094,8 @@ const runAudit = async ({
     territorialSignals,
     planetSignals,
     planetProcessingSignals,
+    eia,
+    contradictions,
     caseId,
     executive,
     llmSummary,
@@ -889,6 +1115,8 @@ const runAudit = async ({
     territorialSignals,
     planetSignals,
     planetProcessingSignals,
+    eia,
+    contradictions,
     executive,
     llmUsed,
     llmError,

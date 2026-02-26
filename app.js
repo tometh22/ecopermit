@@ -141,6 +141,16 @@ const elements = {
   planetAvg: document.getElementById("planetAvg"),
   planetLastMonth: document.getElementById("planetLastMonth"),
   planetNote: document.getElementById("planetNote"),
+  eiaProject: document.getElementById("eiaProject"),
+  eiaLocation: document.getElementById("eiaLocation"),
+  eiaArea: document.getElementById("eiaArea"),
+  eiaDensity: document.getElementById("eiaDensity"),
+  eiaLots: document.getElementById("eiaLots"),
+  eiaBuffer: document.getElementById("eiaBuffer"),
+  eiaWater: document.getElementById("eiaWater"),
+  eiaDischarge: document.getElementById("eiaDischarge"),
+  eiaNote: document.getElementById("eiaNote"),
+  contradictionList: document.getElementById("contradictionList"),
   regulatoryList: document.getElementById("regulatoryList"),
   overlapList: document.getElementById("overlapList"),
   sourcesList: document.getElementById("sourcesList"),
@@ -344,6 +354,76 @@ const setPlanetSignals = (signals) => {
     const statsNote = signals.stats?.error ? `Stats: ${signals.stats.error}` : "";
     elements.planetNote.textContent = [signals.source || "Planet Data API", statsNote].filter(Boolean).join(" · ");
   }
+};
+
+const setEiaSummary = (eia) => {
+  if (!elements.eiaProject) {
+    return;
+  }
+  if (!eia || eia.error) {
+    elements.eiaProject.textContent = "--";
+    elements.eiaLocation.textContent = eia?.error ? `Error: ${eia.error}` : "--";
+    elements.eiaArea.textContent = "--";
+    elements.eiaDensity.textContent = "--";
+    elements.eiaLots.textContent = "--";
+    elements.eiaBuffer.textContent = "--";
+    elements.eiaWater.textContent = "--";
+    elements.eiaDischarge.textContent = "--";
+    if (elements.eiaNote) {
+      elements.eiaNote.textContent = eia?.error
+        ? "No se pudo extraer el EIA."
+        : "EIA no disponible.";
+    }
+    return;
+  }
+
+  elements.eiaProject.textContent = eia.project_name || "--";
+  elements.eiaLocation.textContent = eia.location || "--";
+  elements.eiaArea.textContent = Number.isFinite(eia.area_m2)
+    ? `${(eia.area_m2 / 10000).toFixed(2)} ha`
+    : "--";
+  elements.eiaDensity.textContent = Number.isFinite(eia.density_ha)
+    ? `${eia.density_ha} hab/ha`
+    : "--";
+  elements.eiaLots.textContent = Number.isFinite(eia.lots) ? `${eia.lots}` : "--";
+  elements.eiaBuffer.textContent = Number.isFinite(eia.buffer_m) ? `Buffer ${eia.buffer_m} m` : "--";
+  elements.eiaWater.textContent = Number.isFinite(eia.water_withdrawal_m3_day)
+    ? `${eia.water_withdrawal_m3_day} m³/día`
+    : "--";
+
+  const dischargeLabel = eia.hydrology?.discharge_to_water === true
+    ? "Descarga a cauce"
+    : eia.hydrology?.discharge_to_water === false
+      ? "Sin descarga reportada"
+      : "--";
+  elements.eiaDischarge.textContent = dischargeLabel;
+
+  if (elements.eiaNote) {
+    elements.eiaNote.textContent = eia.notes ? eia.notes : "Fuente: PDF del estudio.";
+  }
+};
+
+const renderContradictions = (contradictions) => {
+  if (!elements.contradictionList) {
+    return;
+  }
+  if (!contradictions || contradictions.length === 0) {
+    elements.contradictionList.innerHTML = "<div class=\"muted\">Sin contradicciones detectadas.</div>";
+    return;
+  }
+
+  elements.contradictionList.innerHTML = contradictions
+    .map((item) => {
+      const severity = item.severity || "Media";
+      const severityClass = severity === "Bloqueante" || severity === "Alta" ? "block" : "warn";
+      return `
+        <div class="alert-item ${severityClass}">
+          <strong>${item.type || "EIA"}</strong>
+          <span>${item.message || ""}</span>
+        </div>
+      `;
+    })
+    .join("");
 };
 
 const setRegulatoryAnchors = (analysis) => {
@@ -853,6 +933,8 @@ const updateUI = (analysis) => {
   setEnvironment(analysis.environment);
   setSatelliteEvidence(analysis.satelliteEvidence);
   setPlanetSignals(analysis.planetSignals);
+  setEiaSummary(analysis.eia);
+  renderContradictions(analysis.contradictions);
   setRegulatoryAnchors(analysis);
   setProjectMeta({
     name: elements.projectName.value || state.caseData?.name || "",
@@ -1143,6 +1225,8 @@ setExecutiveSummary(null);
 setEnvironment(null);
 setSatelliteEvidence(null);
 setPlanetSignals(null);
+setEiaSummary(null);
+renderContradictions(null);
 setRegulatoryAnchors(null);
 setSources(null);
 setProjectMeta({

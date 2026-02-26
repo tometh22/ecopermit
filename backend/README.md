@@ -28,6 +28,7 @@ Server defaults to `http://localhost:5050`.
 - Regulatory RAG and geospatial checks are simulated; replace `auditEngine.js` with real vector DB + GIS integrations.
 - Optional OpenAI step: set `OPENAI_API_KEY` to enable GPT-backed regulatory insights.
 - You can override the model with `OPENAI_MODEL` and tweak reasoning with `OPENAI_REASONING_EFFORT`.
+- EIA extraction: set `EIA_EXTRACT_MODE=auto` (default) to parse the PDF into structured facts.
 - Optional environment signals: set `GOOGLE_ENV_API_KEY` to enable Air Quality + Weather context.
 - Optional satellite pack: `SATELLITE_MODE=demo` (default) or `disabled`.
 - Optional territorial signals (OSM/Overpass): `OVERPASS_ENDPOINT`, `OVERPASS_RADIUS_M`, `OVERPASS_TIMEOUT_MS`.

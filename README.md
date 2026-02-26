@@ -54,6 +54,17 @@ GOOGLE_ENV_CACHE_MS=600000
 
 The key stays server-side. Only the frontend map uses the `maps_key` query param.
 
+## EIA Extraction (GPT)
+
+When a PDF is uploaded, the backend can extract structured facts (claims/specs, water, buffer, etc.).
+Enable with:
+
+```
+EIA_EXTRACT_MODE=auto
+```
+
+Set `EIA_EXTRACT_MODE=disabled` to skip extraction.
+
 ## Satellite Evidence (Demo)
 
 Satellite evidence is currently simulated in demo mode. Configure with:

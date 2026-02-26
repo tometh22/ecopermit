@@ -124,6 +124,7 @@ const buildEvidence = (summary) => {
   const protectedAreas = summary.protectedAreas;
 
   return {
+    summary,
     evidence: {
       water: {
         value: hasWater ? "Presencia hídrica" : "Sin agua detectada",
