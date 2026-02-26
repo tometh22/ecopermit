@@ -218,7 +218,7 @@ const loadTesseract = async () => {
   return tesseractPromise;
 };
 
-const extractPdfText = async (file, maxPages = 4) => {
+const extractPdfText = async (file, maxPages = null) => {
   const pdfjsLib = await loadPdfJs();
   if (!pdfjsLib) {
     throw new Error("PDF.js no disponible.");
@@ -226,7 +226,7 @@ const extractPdfText = async (file, maxPages = 4) => {
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const pageCount = Math.min(pdf.numPages, maxPages);
+  const pageCount = maxPages ? Math.min(pdf.numPages, maxPages) : pdf.numPages;
   let text = "";
 
   for (let i = 1; i <= pageCount; i += 1) {
@@ -257,7 +257,7 @@ const runOcrOnPdf = async (pdf, pageCount, logger) => {
   let text = "";
   for (let i = 1; i <= pageCount; i += 1) {
     const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 1.5 });
+    const viewport = page.getViewport({ scale: 2.0 });
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
     canvas.width = viewport.width;
@@ -281,7 +281,7 @@ const extractDocumentText = async (file) => {
       return cleaned;
     }
 
-    appendLog("Sistema", "Texto embebido insuficiente. Ejecutando OCR...");
+    appendLog("Sistema", `Texto embebido insuficiente. Ejecutando OCR en ${pageCount} páginas...`);
     const ocrText = await runOcrOnPdf(pdf, pageCount, (m) => {
       if (m?.status === "recognizing text") {
         appendLog("Sistema", `OCR ${Math.round(m.progress * 100)}%`);
