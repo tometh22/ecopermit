@@ -71,6 +71,8 @@ const state = {
   mapPolygon: null,
   pendingMap: null,
   boundary: null,
+  documentText: "",
+  documentTextPromise: null,
 };
 
 const elements = {
@@ -150,6 +152,8 @@ const elements = {
   eiaWater: document.getElementById("eiaWater"),
   eiaDischarge: document.getElementById("eiaDischarge"),
   eiaNote: document.getElementById("eiaNote"),
+  eiaClaimsList: document.getElementById("eiaClaimsList"),
+  eiaSpecsList: document.getElementById("eiaSpecsList"),
   contradictionList: document.getElementById("contradictionList"),
   regulatoryList: document.getElementById("regulatoryList"),
   overlapList: document.getElementById("overlapList"),
@@ -172,6 +176,128 @@ const logQueue = [];
 const timestamp = () => {
   const now = new Date();
   return now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+};
+
+const PDFJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+const PDFJS_WORKER_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const TESSERACT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js";
+
+const loadScript = (src) =>
+  new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`No se pudo cargar ${src}`));
+    document.head.appendChild(script);
+  });
+
+let pdfjsPromise = null;
+const loadPdfJs = async () => {
+  if (!pdfjsPromise) {
+    pdfjsPromise = loadScript(PDFJS_URL).then(() => {
+      if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+      }
+      return window.pdfjsLib;
+    });
+  }
+  return pdfjsPromise;
+};
+
+let tesseractPromise = null;
+const loadTesseract = async () => {
+  if (!tesseractPromise) {
+    tesseractPromise = loadScript(TESSERACT_URL).then(() => window.Tesseract);
+  }
+  return tesseractPromise;
+};
+
+const extractPdfText = async (file, maxPages = 4) => {
+  const pdfjsLib = await loadPdfJs();
+  if (!pdfjsLib) {
+    throw new Error("PDF.js no disponible.");
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pageCount = Math.min(pdf.numPages, maxPages);
+  let text = "";
+
+  for (let i = 1; i <= pageCount; i += 1) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map((item) => item.str).join(" ");
+    text += `\n${pageText}`;
+  }
+
+  return { text, pdf, pageCount };
+};
+
+const runOcrOnPdf = async (pdf, pageCount, logger) => {
+  const Tesseract = await loadTesseract();
+  if (!Tesseract) {
+    throw new Error("Tesseract no disponible.");
+  }
+
+  const worker = await Tesseract.createWorker({
+    logger: (m) => logger && logger(m),
+  });
+  if (typeof worker.load === "function") {
+    await worker.load();
+  }
+  await worker.loadLanguage("spa+eng");
+  await worker.initialize("spa+eng");
+
+  let text = "";
+  for (let i = 1; i <= pageCount; i += 1) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: context, viewport }).promise;
+    const result = await worker.recognize(canvas);
+    text += `\n${result.data.text || ""}`;
+  }
+
+  await worker.terminate();
+  return text;
+};
+
+const extractDocumentText = async (file) => {
+  try {
+    appendLog("Sistema", "Extrayendo texto del PDF...");
+    const { text, pdf, pageCount } = await extractPdfText(file);
+    const cleaned = (text || "").replace(/\s+/g, " ").trim();
+    if (cleaned.length > 500) {
+      appendLog("Sistema", "Texto embebido detectado.");
+      return cleaned;
+    }
+
+    appendLog("Sistema", "Texto embebido insuficiente. Ejecutando OCR...");
+    const ocrText = await runOcrOnPdf(pdf, pageCount, (m) => {
+      if (m?.status === "recognizing text") {
+        appendLog("Sistema", `OCR ${Math.round(m.progress * 100)}%`);
+      }
+    });
+    return (ocrText || "").replace(/\s+/g, " ").trim();
+  } catch (error) {
+    appendLog("Sistema", `OCR falló: ${error.message}`);
+    return "";
+  }
+};
+
+const ensureDocumentText = async () => {
+  if (state.documentTextPromise) {
+    await state.documentTextPromise;
+  }
 };
 
 const appendLog = (agent, message) => {
@@ -374,6 +500,12 @@ const setEiaSummary = (eia) => {
         ? "No se pudo extraer el EIA."
         : "EIA no disponible.";
     }
+    if (elements.eiaClaimsList) {
+      elements.eiaClaimsList.innerHTML = "<div class=\"muted\">Sin datos.</div>";
+    }
+    if (elements.eiaSpecsList) {
+      elements.eiaSpecsList.innerHTML = "<div class=\"muted\">Sin datos.</div>";
+    }
     return;
   }
 
@@ -400,6 +532,17 @@ const setEiaSummary = (eia) => {
 
   if (elements.eiaNote) {
     elements.eiaNote.textContent = eia.notes ? eia.notes : "Fuente: PDF del estudio.";
+  }
+
+  if (elements.eiaClaimsList) {
+    elements.eiaClaimsList.innerHTML = eia.claims && eia.claims.length
+      ? eia.claims.map((item) => `<div class="pill">${item}</div>`).join("")
+      : "<div class=\"muted\">Sin claims detectados.</div>";
+  }
+  if (elements.eiaSpecsList) {
+    elements.eiaSpecsList.innerHTML = eia.specs && eia.specs.length
+      ? eia.specs.map((item) => `<div class="pill">${item}</div>`).join("")
+      : "<div class=\"muted\">Sin specs detectados.</div>";
   }
 };
 
@@ -949,6 +1092,7 @@ const updateUI = (analysis) => {
 };
 
 const createProject = async () => {
+  await ensureDocumentText();
   const formData = new FormData();
   formData.append("name", elements.projectName.value || "");
   formData.append("industry", elements.industry.value || "");
@@ -958,6 +1102,9 @@ const createProject = async () => {
   formData.append("claims", elements.claims.value || "");
   formData.append("specs", elements.specs.value || "");
   formData.append("caseId", state.caseId || "");
+  if (state.documentText) {
+    formData.append("documentText", state.documentText);
+  }
   if (state.boundary) {
     formData.append("boundary", JSON.stringify(state.boundary));
   }
@@ -1120,14 +1267,27 @@ const handleFile = (file) => {
   }
 
   selectedFile = file;
+  state.documentText = "";
+  state.documentTextPromise = null;
 
   if (file.type === "text/plain") {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target.result;
-      elements.claims.value = text.slice(0, 1200);
+      const trimmed = String(text || "").slice(0, 12000);
+      elements.claims.value = trimmed.slice(0, 1200);
+      state.documentText = trimmed;
     };
     reader.readAsText(file);
+    return;
+  }
+
+  if (file.type === "application/pdf") {
+    state.documentTextPromise = extractDocumentText(file).then((text) => {
+      if (text) {
+        state.documentText = text.slice(0, 12000);
+      }
+    });
   }
 };
 

@@ -77,18 +77,19 @@ app.post("/api/projects", upload.single("file"), async (req, res, next) => {
         }
       : null;
 
-    let fileText = "";
+    const providedText = typeof req.body.documentText === "string" ? req.body.documentText : "";
+    let fileText = providedText.trim();
     if (req.file?.path) {
       try {
-        if (req.file.mimetype === "application/pdf") {
+        if (!fileText && req.file.mimetype === "application/pdf") {
           const buffer = fs.readFileSync(req.file.path);
           const parsed = await pdfParse(buffer);
           fileText = parsed.text || "";
-        } else if (req.file.mimetype === "text/plain") {
+        } else if (!fileText && req.file.mimetype === "text/plain") {
           fileText = fs.readFileSync(req.file.path, "utf-8");
         }
       } catch (error) {
-        fileText = "";
+        fileText = fileText || "";
       }
     }
 
