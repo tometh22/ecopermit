@@ -65,6 +65,20 @@ EIA_EXTRACT_MODE=auto
 
 Set `EIA_EXTRACT_MODE=disabled` to skip extraction.
 
+## OCR en backend (PDF escaneado)
+
+Para PDFs escaneados, el backend ejecuta OCR automático si no hay texto embebido:
+
+```
+OCR_MODE=auto
+OCR_MIN_TEXT_CHARS=500
+OCR_LANG=spa+eng
+OCR_MAX_PAGES=0
+OCR_SCALE=2
+```
+
+`OCR_MAX_PAGES=0` procesa todas las páginas.
+
 ## Satellite Evidence (Demo)
 
 Satellite evidence is currently simulated in demo mode. Configure with:

@@ -29,6 +29,11 @@ Server defaults to `http://localhost:5050`.
 - Optional OpenAI step: set `OPENAI_API_KEY` to enable GPT-backed regulatory insights.
 - You can override the model with `OPENAI_MODEL` and tweak reasoning with `OPENAI_REASONING_EFFORT`.
 - EIA extraction: set `EIA_EXTRACT_MODE=auto` (default) to parse the PDF into structured facts.
+- OCR (server-side): set `OCR_MODE=auto` to run OCR when PDF text is missing.
+  - `OCR_MIN_TEXT_CHARS` threshold (default 500).
+  - `OCR_LANG` (default `spa+eng`).
+  - `OCR_MAX_PAGES` (0 = all pages).
+  - `OCR_SCALE` (render scale, default 2).
 - Optional environment signals: set `GOOGLE_ENV_API_KEY` to enable Air Quality + Weather context.
 - Optional satellite pack: `SATELLITE_MODE=demo` (default) or `disabled`.
 - Optional territorial signals (OSM/Overpass): `OVERPASS_ENDPOINT`, `OVERPASS_RADIUS_M`, `OVERPASS_TIMEOUT_MS`.

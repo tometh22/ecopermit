@@ -178,6 +178,7 @@ const timestamp = () => {
   return now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 };
 
+const CLIENT_OCR_ENABLED = new URLSearchParams(window.location.search).get("ocr") === "client";
 const PDFJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
 const PDFJS_WORKER_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 const TESSERACT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js";
@@ -1283,11 +1284,15 @@ const handleFile = (file) => {
   }
 
   if (file.type === "application/pdf") {
-    state.documentTextPromise = extractDocumentText(file).then((text) => {
-      if (text) {
-        state.documentText = text.slice(0, 12000);
-      }
-    });
+    if (CLIENT_OCR_ENABLED) {
+      state.documentTextPromise = extractDocumentText(file).then((text) => {
+        if (text) {
+          state.documentText = text.slice(0, 12000);
+        }
+      });
+    } else {
+      appendLog("Sistema", "OCR se ejecutará en backend al correr el radar.");
+    }
   }
 };
 
