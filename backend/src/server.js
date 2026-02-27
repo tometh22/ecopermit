@@ -11,7 +11,6 @@ const { fetchEnvironmentalContext } = require("./contextService");
 const { fetchTerritorialSignals } = require("./territorialService");
 const { fetchPlanetSignals } = require("./planetService");
 const { fetchPlanetProcessingSignals } = require("./planetProcessingService");
-const { extractTextWithOcr } = require("./ocrService");
 
 dotenv.config();
 
@@ -20,6 +19,19 @@ const PORT = Number(process.env.PORT || 5050);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const OCR_MODE = (process.env.OCR_MODE || "auto").toLowerCase();
 const OCR_MIN_TEXT_CHARS = Number(process.env.OCR_MIN_TEXT_CHARS || 500);
+
+let cachedOcrService = null;
+const loadOcrService = () => {
+  if (cachedOcrService) {
+    return cachedOcrService;
+  }
+  try {
+    cachedOcrService = { ...require("./ocrService"), error: null };
+  } catch (error) {
+    cachedOcrService = { extractTextWithOcr: null, error };
+  }
+  return cachedOcrService;
+};
 
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json({ limit: "2mb" }));
@@ -107,7 +119,11 @@ app.post("/api/projects", upload.single("file"), async (req, res, next) => {
           pdfBuffer = fs.readFileSync(req.file.path);
         }
         if (pdfBuffer) {
-          const ocrResult = await extractTextWithOcr(pdfBuffer);
+          const ocrService = loadOcrService();
+          if (ocrService.error || !ocrService.extractTextWithOcr) {
+            throw new Error(`OCR dependencies missing: ${ocrService.error?.message || "unknown"}`);
+          }
+          const ocrResult = await ocrService.extractTextWithOcr(pdfBuffer);
           fileText = ocrResult.text || "";
         }
       } catch (error) {
@@ -126,7 +142,11 @@ app.post("/api/projects", upload.single("file"), async (req, res, next) => {
           pdfBuffer = fs.readFileSync(req.file.path);
         }
         if (pdfBuffer) {
-          const ocrResult = await extractTextWithOcr(pdfBuffer);
+          const ocrService = loadOcrService();
+          if (ocrService.error || !ocrService.extractTextWithOcr) {
+            throw new Error(`OCR dependencies missing: ${ocrService.error?.message || "unknown"}`);
+          }
+          const ocrResult = await ocrService.extractTextWithOcr(pdfBuffer);
           if (ocrResult.text && ocrResult.text.trim().length > fileText.trim().length) {
             fileText = ocrResult.text;
           }
