@@ -1,3 +1,4 @@
+const APP_CONFIG = window.APP_CONFIG || {};
 const resolveMapsKey = () => {
   const params = new URLSearchParams(window.location.search);
   const param = params.get("maps_key");
@@ -5,7 +6,7 @@ const resolveMapsKey = () => {
     localStorage.setItem("GMAPS_API_KEY", param);
     return param;
   }
-  return localStorage.getItem("GMAPS_API_KEY") || "";
+  return localStorage.getItem("GMAPS_API_KEY") || APP_CONFIG.GMAPS_API_KEY || "";
 };
 
 const GMAPS_API_KEY = resolveMapsKey();
@@ -17,7 +18,7 @@ const resolveApiBaseUrl = () => {
     localStorage.setItem("API_BASE_URL", param);
     return param;
   }
-  return localStorage.getItem("API_BASE_URL") || "http://localhost:5050";
+  return localStorage.getItem("API_BASE_URL") || APP_CONFIG.API_BASE_URL || "http://localhost:5050";
 };
 
 const API_BASE_URL = resolveApiBaseUrl().replace(/\/$/, "");

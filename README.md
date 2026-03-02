@@ -43,6 +43,15 @@ index.html?maps_key=YOUR_GOOGLE_MAPS_KEY
 
 The key is stored in `localStorage` for the browser session and enables the satellite basemap.
 
+Alternatively, set it once in `config.js`:
+
+```
+window.APP_CONFIG = {
+  GMAPS_API_KEY: "YOUR_GOOGLE_MAPS_KEY",
+  API_BASE_URL: "https://your-backend.example.com"
+};
+```
+
 ## Air Quality + Weather Context
 
 To enable environmental context signals (AQI + weather), set this in the backend `.env` (or Render env vars):
