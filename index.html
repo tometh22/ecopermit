@@ -49,6 +49,40 @@
         </div>
       </header>
 
+      <section class="card onboarding-card" id="onboardingCard">
+        <div>
+          <h2>Inicio rápido</h2>
+          <p class="muted">Usa este flujo para correr una auditoría completa en menos de 2 minutos.</p>
+        </div>
+        <div class="onboarding-grid">
+          <div class="onboarding-step">
+            <span class="step-index">1</span>
+            <div>
+              <strong>Cargar un caso</strong>
+              <p class="muted">Para probar rápido, carga Lawen con datos preconfigurados.</p>
+            </div>
+            <button class="ghost small" type="button" id="quickLoadLawenBtn">Cargar demo</button>
+          </div>
+          <div class="onboarding-step">
+            <span class="step-index">2</span>
+            <div>
+              <strong>Completar datos</strong>
+              <p class="muted">Sube el EIA y revisa coordenadas/polígono del proyecto.</p>
+            </div>
+            <button class="ghost small" type="button" id="quickOpenIntakeBtn">Abrir datos</button>
+          </div>
+          <div class="onboarding-step">
+            <span class="step-index">3</span>
+            <div>
+              <strong>Ejecutar radar</strong>
+              <p class="muted">Corre el análisis para generar score, alertas y contradicciones.</p>
+            </div>
+            <button class="primary" type="button" id="quickRunAuditBtn">Ejecutar ahora</button>
+          </div>
+        </div>
+        <p class="muted" id="onboardingStatus">Estado: pendiente de iniciar.</p>
+      </section>
+
       <section class="score-grid">
         <div class="card score-card">
           <div class="score-label">Score global de exposición</div>
@@ -192,7 +226,7 @@
         </div>
       </section>
 
-      <details class="card intake-card">
+      <details class="card intake-card" id="intakeDetails" open>
         <summary>Datos del proyecto (opcional)</summary>
         <div class="intake-grid">
           <div class="upload-zone" id="uploadZone">

@@ -82,7 +82,12 @@ const elements = {
   runAuditBtn: document.getElementById("runAuditBtn"),
   exportBtn: document.getElementById("exportBtn"),
   loadLawenBtn: document.getElementById("loadLawenBtn"),
+  quickLoadLawenBtn: document.getElementById("quickLoadLawenBtn"),
+  quickOpenIntakeBtn: document.getElementById("quickOpenIntakeBtn"),
+  quickRunAuditBtn: document.getElementById("quickRunAuditBtn"),
   caseBadge: document.getElementById("caseBadge"),
+  onboardingStatus: document.getElementById("onboardingStatus"),
+  intakeDetails: document.getElementById("intakeDetails"),
   boundaryInput: document.getElementById("boundaryInput"),
   projectTitle: document.getElementById("projectTitle"),
   projectLocation: document.getElementById("projectLocation"),
@@ -173,6 +178,13 @@ let lastAnalysis = null;
 let logTimer = null;
 let activeStream = null;
 const logQueue = [];
+
+const markAuditStale = () => {
+  if (lastAnalysis) {
+    lastAnalysis = null;
+  }
+  updateOnboardingStatus();
+};
 
 const timestamp = () => {
   const now = new Date();
@@ -727,6 +739,31 @@ const formatArea = (areaMeters) => {
   return `${hectares.toFixed(1)} ha`;
 };
 
+const updateOnboardingStatus = () => {
+  if (!elements.onboardingStatus) {
+    return;
+  }
+
+  const hasCase = Boolean(state.caseData);
+  const hasFile = Boolean(selectedFile);
+  const hasCoords = Boolean(getCoordinatesFromForm());
+  const hasText = Boolean((elements.claims?.value || "").trim() || (elements.specs?.value || "").trim());
+
+  if (lastAnalysis) {
+    elements.onboardingStatus.textContent = "Estado: auditoría ejecutada. Revisa score, alertas y decisión.";
+    return;
+  }
+  if (hasCase && (hasFile || hasCoords || hasText)) {
+    elements.onboardingStatus.textContent = "Estado: listo para ejecutar radar.";
+    return;
+  }
+  if (hasFile || hasCoords || hasText) {
+    elements.onboardingStatus.textContent = "Estado: datos cargados parcialmente. Completa y ejecuta radar.";
+    return;
+  }
+  elements.onboardingStatus.textContent = "Estado: pendiente de iniciar. Recomendado: Cargar demo Lawen.";
+};
+
 const setProjectMeta = ({ name, coordinates, area, updatedAt }) => {
   if (elements.projectTitle) {
     elements.projectTitle.textContent = name || "Sin definir";
@@ -996,8 +1033,13 @@ const applyCase = (caseData) => {
 };
 
 const getCoordinatesFromForm = () => {
-  const lat = Number(elements.lat.value);
-  const lng = Number(elements.lng.value);
+  const latRaw = elements.lat.value?.trim();
+  const lngRaw = elements.lng.value?.trim();
+  if (!latRaw || !lngRaw) {
+    return null;
+  }
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
   if (Number.isNaN(lat) || Number.isNaN(lng)) {
     return null;
   }
@@ -1222,6 +1264,7 @@ const runAudit = async () => {
     appendLog("Sistema", `Proyecto creado: ${project.id}.`);
     const audit = await createAudit(project.id);
     lastAnalysis = audit.analysis;
+    updateOnboardingStatus();
     streamAudit(audit, () => setLoading(false));
   } catch (error) {
     appendLog("Sistema", `Error: ${error.message}`);
@@ -1369,13 +1412,37 @@ const initMap = () => {
 const bindEvents = () => {
   elements.chooseFileBtn.addEventListener("click", () => elements.fileInput.click());
   elements.fileInput.addEventListener("change", (event) => handleFile(event.target.files[0]));
+  elements.fileInput.addEventListener("change", markAuditStale);
   if (elements.boundaryInput) {
     elements.boundaryInput.addEventListener("change", (event) => handleBoundaryFile(event.target.files[0]));
+    elements.boundaryInput.addEventListener("change", markAuditStale);
   }
+  elements.lat.addEventListener("input", markAuditStale);
+  elements.lng.addEventListener("input", markAuditStale);
+  elements.claims.addEventListener("input", markAuditStale);
+  elements.specs.addEventListener("input", markAuditStale);
   elements.runAuditBtn.addEventListener("click", runAudit);
+  if (elements.quickRunAuditBtn) {
+    elements.quickRunAuditBtn.addEventListener("click", runAudit);
+  }
   elements.exportBtn.addEventListener("click", exportRoadmap);
   if (elements.loadLawenBtn) {
-    elements.loadLawenBtn.addEventListener("click", () => applyCase(DEMO_CASES.lawen));
+    elements.loadLawenBtn.addEventListener("click", () => {
+      applyCase(DEMO_CASES.lawen);
+      markAuditStale();
+    });
+  }
+  if (elements.quickLoadLawenBtn) {
+    elements.quickLoadLawenBtn.addEventListener("click", () => {
+      applyCase(DEMO_CASES.lawen);
+      markAuditStale();
+    });
+  }
+  if (elements.quickOpenIntakeBtn && elements.intakeDetails) {
+    elements.quickOpenIntakeBtn.addEventListener("click", () => {
+      elements.intakeDetails.open = true;
+      elements.intakeDetails.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 };
 
@@ -1401,3 +1468,4 @@ setProjectMeta({
   area: state.caseData?.area_m2,
   updatedAt: null,
 });
+updateOnboardingStatus();
