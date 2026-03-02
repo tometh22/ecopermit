@@ -1153,8 +1153,8 @@ const createAudit = async (projectId) => {
     throw new Error(errorText || "Error al ejecutar la auditoría.");
   }
 
-  const payload = await response.json();
-  return payload.audit;
+  const result = await response.json();
+  return result.audit;
 };
 
 const streamAudit = (audit, onComplete) => {
