@@ -3,446 +3,304 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Radar Ejecutivo de Riesgo Territorial</title>
+    <title>Forensic Environmental Auditor v2</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app">
-      <header class="topbar">
+    <div class="app-shell">
+      <header class="hero">
         <div>
-          <div class="eyebrow">Forensic Environmental Auditor</div>
-          <h1>Radar Ejecutivo de Riesgo Territorial</h1>
+          <p class="eyebrow">Forensic Environmental Auditor v2</p>
+          <h1>Pre‑EIA, EIA QA y Living EIA en un flujo claro</h1>
           <p class="subtitle">
-            Responde en menos de 90 segundos: ¿este terreno es una oportunidad o un problema?
+            Motor de decisión temprana para desarrollo territorial. Resultado ejecutivo en menos de 90 segundos.
           </p>
         </div>
-        <div class="header-panel">
-          <div class="meta-grid">
-            <div class="meta-item">
-              <span>Proyecto</span>
-              <strong id="projectTitle">Sin definir</strong>
-            </div>
-            <div class="meta-item">
-              <span>Ubicación</span>
-              <strong id="projectLocation">--</strong>
-            </div>
-            <div class="meta-item">
-              <span>Superficie</span>
-              <strong id="projectArea">--</strong>
-            </div>
-            <div class="meta-item">
-              <span>Modelo</span>
-              <strong id="modelVersion">ICET v0.9</strong>
-            </div>
-            <div class="meta-item">
-              <span>Actualización</span>
-              <strong id="updatedAt">--</strong>
-            </div>
-          </div>
-          <div class="header-actions">
-            <span class="case-pill" id="caseBadge">Caso demo: ninguno</span>
-            <div class="header-buttons">
-              <button class="ghost small" type="button" id="loadLawenBtn">Cargar caso Lawen</button>
-              <button class="primary" type="button" id="runAuditBtn">Ejecutar radar</button>
-            </div>
-          </div>
+        <div class="mode-switch" role="tablist" aria-label="Modos">
+          <button class="mode-btn active" type="button" id="modePreBtn" data-mode="PRE_EIA">Pre‑EIA</button>
+          <button class="mode-btn" type="button" id="modeQaBtn" data-mode="EIA_QA">EIA QA</button>
+          <button class="mode-btn" type="button" id="modeLivingBtn" data-mode="LIVING_EIA">Living EIA</button>
         </div>
       </header>
 
-      <section class="card onboarding-card" id="onboardingCard">
-        <div>
-          <h2>Inicio rápido</h2>
-          <p class="muted">Usa este flujo para correr una auditoría completa en menos de 2 minutos.</p>
-        </div>
-        <div class="onboarding-grid">
-          <div class="onboarding-step">
-            <span class="step-index">1</span>
-            <div>
-              <strong>Cargar un caso</strong>
-              <p class="muted">Para probar rápido, carga Lawen con datos preconfigurados.</p>
-            </div>
-            <button class="ghost small" type="button" id="quickLoadLawenBtn">Cargar demo</button>
+      <section class="screen card" id="setupScreen">
+        <div class="section-head">
+          <div>
+            <h2>1. Setup del caso</h2>
+            <p class="muted">Carga mínima para ejecutar análisis: nombre, ubicación y tipo de proyecto.</p>
           </div>
-          <div class="onboarding-step">
-            <span class="step-index">2</span>
-            <div>
-              <strong>Completar datos</strong>
-              <p class="muted">Sube el EIA y revisa coordenadas/polígono del proyecto.</p>
-            </div>
-            <button class="ghost small" type="button" id="quickOpenIntakeBtn">Abrir datos</button>
-          </div>
-          <div class="onboarding-step">
-            <span class="step-index">3</span>
-            <div>
-              <strong>Ejecutar radar</strong>
-              <p class="muted">Corre el análisis para generar score, alertas y contradicciones.</p>
-            </div>
-            <button class="primary" type="button" id="quickRunAuditBtn">Ejecutar ahora</button>
-          </div>
-        </div>
-        <p class="muted" id="onboardingStatus">Estado: pendiente de iniciar.</p>
-      </section>
-
-      <section class="score-grid">
-        <div class="card score-card">
-          <div class="score-label">Score global de exposición</div>
-          <div class="score-main">
-            <div class="gauge" id="riskGauge">
-              <div class="gauge-inner">
-                <span class="gauge-value" id="riskValue">0</span>
-                <span class="gauge-label">ICET</span>
-              </div>
-            </div>
-            <div>
-              <div class="score-status" id="exposureLevel">Riesgo bajo</div>
-              <p class="muted" id="exposureNote">Ejecuta el radar para calcular exposición.</p>
-            </div>
-          </div>
+          <div class="status-chip" id="stageChip">Estado: setup</div>
         </div>
 
-        <div class="card alerts-card">
-          <h3>Alertas críticas automáticas</h3>
-          <div class="alert-list" id="alertList">
-            <div class="muted">Sin alertas críticas.</div>
-          </div>
-        </div>
-
-        <div class="card decision-card">
-          <h3>Decisión sugerida por IA</h3>
-          <div class="decision-label" id="decisionLabel">Pendiente</div>
-          <p class="muted" id="decisionNote">Completa la auditoría para una recomendación.</p>
-          <button class="secondary" type="button" id="exportBtn">Generar hoja de corrección</button>
-        </div>
-      </section>
-
-      <section class="map-grid">
-        <div class="card map-card">
-          <div class="map-toolbar">
-            <span>Capas activables</span>
-            <label class="toggle">
-              <input type="checkbox" id="layerFlood" checked />
-              <span>Inundabilidad</span>
-            </label>
-            <label class="toggle">
-              <input type="checkbox" id="layerEco" checked />
-              <span>Sensibilidad ecológica</span>
-            </label>
-            <label class="toggle">
-              <input type="checkbox" id="layerSocial" />
-              <span>Vulnerabilidad social</span>
-            </label>
-            <label class="toggle">
-              <input type="checkbox" id="layerZoning" />
-              <span>Zonificación</span>
-            </label>
-          </div>
-          <div id="map" class="map">
-            <div class="map-placeholder">
-              <div>
-                <h3>Mapa de síntesis territorial</h3>
-                <p>Agrega tu clave con <span class="mono">?maps_key=TU_KEY</span> para activar.</p>
-              </div>
-            </div>
-            <div class="map-overlay heatmap"></div>
-            <div class="map-overlay flood"></div>
-            <div class="map-overlay eco"></div>
-            <div class="map-overlay social"></div>
-            <div class="map-overlay zoning"></div>
-          </div>
-          <div class="legend">
-            <div><span class="swatch low"></span> Bajo riesgo</div>
-            <div><span class="swatch medium"></span> Medio</div>
-            <div><span class="swatch high"></span> Alto</div>
-            <div><span class="swatch block"></span> Zona bloqueante</div>
-          </div>
-        </div>
-
-        <div class="card indices-card">
-          <div class="indices-header">
-            <h3>Índices sintéticos</h3>
-            <span class="muted">Dimensión · Score · Nivel · Mitigabilidad</span>
-          </div>
-          <div class="indices-table">
-            <div class="indices-row header">
-              <span>Dimensión</span>
-              <span>Score</span>
-              <span>Nivel</span>
-              <span>Mitigabilidad</span>
-            </div>
-            <div id="indicesBody"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="detail-grid">
-        <div class="card profile-card">
-          <h3>Perfil de riesgo detallado</h3>
-          <div class="profile-list">
-            <div class="profile-item">
-              <div class="profile-title">Riesgo físico-natural</div>
-              <p class="muted">% superficie inundable · Altura vs cuenca · Pendiente · Proximidad a agua</p>
-              <p id="detailPhysical">Pendiente de evaluación.</p>
-            </div>
-            <div class="profile-item">
-              <div class="profile-title">Riesgo social</div>
-              <p class="muted">Prensa local · Actores activos · Judicialización · Vulnerabilidad socioeconómica</p>
-              <p id="detailSocial">Pendiente de evaluación.</p>
-            </div>
-            <div class="profile-item">
-              <div class="profile-title">Riesgo climático 2030–2050</div>
-              <p class="muted">Tormentas intensas · Stress térmico · Olas de calor · Estrés hídrico</p>
-              <p id="detailClimate">Pendiente de evaluación.</p>
-            </div>
-            <div class="profile-item">
-              <div class="profile-title">Riesgo regulatorio</div>
-              <p class="muted">Compatibilidad de uso · EIA · Restricciones provinciales</p>
-              <p id="detailRegulatory">Pendiente de evaluación.</p>
-            </div>
-            <div class="profile-item">
-              <div class="profile-title">Riesgo político-institucional</div>
-              <p class="muted">Estabilidad normativa · Cambios de gestión · Presión pública</p>
-              <p id="detailPolitical">Pendiente de evaluación.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="card economic-card">
-          <h3>Impacto económico estimado</h3>
-          <div class="economic-grid">
-            <div>
-              <span>CAPEX ambiental</span>
-              <strong id="capexValue">--</strong>
-            </div>
-            <div>
-              <span>Mitigación hídrica</span>
-              <strong id="hydraulicCost">--</strong>
-            </div>
-            <div>
-              <span>Escenario 2050</span>
-              <strong id="scenarioNote">--</strong>
-            </div>
-          </div>
-          <p class="muted" id="economicNote">Indicativo. Ajustar con datos de ingeniería.</p>
-        </div>
-      </section>
-
-      <details class="card intake-card" id="intakeDetails" open>
-        <summary>Datos del proyecto (opcional)</summary>
-        <div class="intake-grid">
-          <div class="upload-zone" id="uploadZone">
+        <div class="setup-grid">
+          <div class="upload-card">
+            <h3>Documento EIA</h3>
+            <p class="muted">PDF/TXT opcional en Pre‑EIA, recomendado en EIA QA.</p>
             <input id="fileInput" type="file" accept=".pdf,.txt" />
-            <div>
-              <h3>Subir estudio</h3>
-              <p>Formato .pdf o .txt</p>
-              <button class="ghost" type="button" id="chooseFileBtn">Seleccionar archivo</button>
-            </div>
+            <button class="ghost" id="chooseFileBtn" type="button">Seleccionar archivo</button>
+            <p class="muted small" id="fileNameLabel">Sin archivo</p>
+
+            <h3>Límite del predio</h3>
+            <p class="muted">Sube KML/GeoJSON para evitar polígonos aproximados.</p>
+            <input id="boundaryInput" type="file" accept=".kml,.geojson,.json" />
+            <p class="muted small" id="boundaryStatus">Sin polígono cargado.</p>
           </div>
-          <form class="form" id="intakeForm">
+
+          <form class="form" id="setupForm">
             <label>
               Nombre del proyecto
-              <input type="text" id="projectName" placeholder="Desarrollo mixto" />
+              <input type="text" id="projectName" placeholder="Lawen / Bosque y Mar" />
             </label>
+
             <label>
-              Industria
-              <select id="industry">
-                <option>Inmobiliario</option>
-                <option>Minería</option>
-                <option>Energía</option>
-                <option>Infraestructura</option>
-                <option>Manufactura</option>
+              Tipo de proyecto
+              <select id="projectType">
+                <option value="Inmobiliario">Inmobiliario</option>
+                <option value="Minería">Minería</option>
+                <option value="Energía">Energía</option>
+                <option value="Infraestructura">Infraestructura</option>
               </select>
             </label>
+
             <label>
               Coordenadas (Lat, Lng)
               <div class="row">
-                <input type="number" step="0.0001" id="lat" placeholder="-38.0877" />
-                <input type="number" step="0.0001" id="lng" placeholder="-57.5829" />
+                <input type="number" step="0.000001" id="lat" placeholder="-38.087682" />
+                <input type="number" step="0.000001" id="lng" placeholder="-57.582513" />
               </div>
             </label>
-            <label>
-              Polígono del predio (KML/GeoJSON)
-              <input type="file" id="boundaryInput" accept=".kml,.geojson,.json" />
-              <small class="muted">Exporta desde Google Earth y sube el KML para un límite exacto.</small>
-            </label>
-            <label>
-              Escenario
-              <select id="scenario">
-                <option>Inmobiliario</option>
-                <option>Minería</option>
-                <option>Energía</option>
-              </select>
-            </label>
+
             <label>
               Claims del estudio
-              <textarea id="claims" rows="3" placeholder="Ej: Impacto neutral en sistemas hídricos."></textarea>
+              <textarea id="claims" rows="4" placeholder="Declaraciones ambientales del estudio..."></textarea>
             </label>
+
             <label>
-              Especificaciones de ingeniería
-              <textarea id="specs" rows="3" placeholder="Ej: Descarga al arroyo, planta de tratamiento."></textarea>
+              Especificaciones técnicas
+              <textarea id="specs" rows="4" placeholder="Descargas, extracción, drenajes, obras..."></textarea>
             </label>
+
+            <div id="monitoringBlock" class="hidden">
+              <label>
+                <input type="checkbox" id="monitoringEnabled" checked />
+                Activar monitoreo Living EIA
+              </label>
+              <label>
+                Frecuencia
+                <select id="monitoringFrequency">
+                  <option value="weekly">Semanal</option>
+                  <option value="daily">Diaria</option>
+                  <option value="hourly">Horaria</option>
+                </select>
+              </label>
+            </div>
           </form>
         </div>
-      </details>
 
-      <details class="card evidence-details">
-        <summary>Evidencia y trazabilidad</summary>
-        <div class="evidence-grid">
-          <div class="evidence-block">
-            <h4>Cruces regulatorios</h4>
-            <div class="pill-grid" id="regulatoryList"></div>
-            <p class="muted">Solapamientos geográficos</p>
-            <div class="pill-grid" id="overlapList"></div>
+        <div class="setup-actions">
+          <button class="ghost" type="button" id="loadLawenBtn">Cargar demo Lawen</button>
+          <button class="ghost" type="button" id="clearCaseBtn">Limpiar</button>
+          <button class="primary" type="button" id="primaryActionBtn">Ejecutar análisis</button>
+        </div>
+        <p class="message" id="setupMessage">Completa datos mínimos para iniciar.</p>
+      </section>
+
+      <section class="screen card hidden" id="resultScreen">
+        <div class="section-head">
+          <div>
+            <h2>2. Resultado ejecutivo</h2>
+            <p class="muted">Decisión orientada a negocio con alertas y mitigabilidad.</p>
           </div>
-          <div class="evidence-block">
-            <h4>Condiciones ambientales</h4>
-            <div class="context-grid">
-              <div>
-                <span>AQI</span>
-                <strong id="envAqi">--</strong>
-                <small id="envAqiCategory">--</small>
-              </div>
-              <div>
-                <span>PM2.5</span>
-                <strong id="envPm25">--</strong>
-                <small id="envPm25Units"></small>
-              </div>
-              <div>
-                <span>Temperatura</span>
-                <strong id="envTemp">--</strong>
-                <small id="envFeelsLike"></small>
-              </div>
-              <div>
-                <span>Humedad</span>
-                <strong id="envHumidity">--</strong>
-                <small id="envCondition"></small>
+          <div class="status-chip" id="modeBadge">Modo: Pre‑EIA</div>
+        </div>
+
+        <div class="result-grid">
+          <article class="decision-card">
+            <span class="kicker">Decisión sugerida</span>
+            <h3 id="decisionLabel">Pendiente</h3>
+            <p class="muted" id="decisionNote">Sin ejecución.</p>
+            <div class="confidence-line">Confianza general: <strong id="overallConfidence">--</strong></div>
+          </article>
+
+          <article class="score-card">
+            <span class="kicker">ICET</span>
+            <div class="gauge" id="icetGauge">
+              <div class="gauge-inner">
+                <strong id="icetValue">0</strong>
+                <span>/100</span>
               </div>
             </div>
-            <p class="context-note" id="envNote">Fuente: Google Air Quality & Weather</p>
+            <p id="exposureLevel">Riesgo bajo</p>
+          </article>
+
+          <article class="alerts-card">
+            <span class="kicker">Top alertas</span>
+            <ul id="topAlerts" class="list"></ul>
+          </article>
+        </div>
+
+        <div class="indices-card">
+          <h3>Índices sintéticos</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Dimensión</th>
+                <th>Score</th>
+                <th>Nivel</th>
+                <th>Mitigabilidad</th>
+              </tr>
+            </thead>
+            <tbody id="indicesTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="kpis-row">
+          <div class="kpi-box">
+            <span>Duración</span>
+            <strong id="runDuration">--</strong>
           </div>
-          <div class="evidence-block">
-            <h4>Evidencia satelital</h4>
-            <div class="context-grid">
-              <div>
-                <span>Agua histórica</span>
-                <strong id="satWater">--</strong>
-                <small id="satWaterNote"></small>
-              </div>
-              <div>
-                <span>Cobertura</span>
-                <strong id="satLand">--</strong>
-                <small id="satLandNote"></small>
-              </div>
-              <div>
-                <span>Hidrología</span>
-                <strong id="satHydro">--</strong>
-                <small id="satHydroNote"></small>
-              </div>
-              <div>
-                <span>Vegetación</span>
-                <strong id="satVegetation">--</strong>
-                <small id="satVegetationNote"></small>
-              </div>
-            </div>
-            <p class="context-note" id="satSource">Fuente: integrar datasets satelitales.</p>
+          <div class="kpi-box">
+            <span>Contradicciones</span>
+            <strong id="contradictionCount">--</strong>
           </div>
-          <div class="evidence-block">
-            <h4>Planet imagery</h4>
-            <div class="context-grid">
-              <div>
-                <span>Última escena</span>
-                <strong id="planetLast">--</strong>
-                <small>Fecha de adquisición</small>
-              </div>
-              <div>
-                <span>Escenas</span>
-                <strong id="planetCount">--</strong>
-                <small>Periodo analizado</small>
-              </div>
-              <div>
-                <span>Nubosidad</span>
-                <strong id="planetCloud">--</strong>
-                <small>Promedio</small>
-              </div>
-              <div>
-                <span>Item types</span>
-                <strong id="planetTypes">--</strong>
-                <small>Catálogo</small>
-              </div>
-              <div>
-                <span>Promedio / mes</span>
-                <strong id="planetAvg">--</strong>
-                <small>Stats API</small>
-              </div>
-              <div>
-                <span>Último mes</span>
-                <strong id="planetLastMonth">--</strong>
-                <small>Escenas</small>
-              </div>
-            </div>
-            <p class="context-note" id="planetNote">Planet Data API</p>
+          <div class="kpi-box">
+            <span>Solapamientos</span>
+            <strong id="overlapCount">--</strong>
           </div>
-          <div class="evidence-block">
-            <h4>Resumen EIA (GPT)</h4>
-            <div class="context-grid">
-              <div>
-                <span>Proyecto</span>
-                <strong id="eiaProject">--</strong>
-                <small id="eiaLocation">--</small>
-              </div>
-              <div>
-                <span>Área</span>
-                <strong id="eiaArea">--</strong>
-                <small id="eiaDensity">--</small>
-              </div>
-              <div>
-                <span>Lotes</span>
-                <strong id="eiaLots">--</strong>
-                <small id="eiaBuffer">--</small>
-              </div>
-              <div>
-                <span>Agua</span>
-                <strong id="eiaWater">--</strong>
-                <small id="eiaDischarge">--</small>
-              </div>
-            </div>
-            <p class="context-note" id="eiaNote">Fuente: PDF del estudio.</p>
-          </div>
-          <div class="evidence-block">
-            <h4>Claims y specs extraídos</h4>
-            <div class="eia-lists">
-              <div>
-                <span>Claims</span>
-                <div class="eia-list" id="eiaClaimsList"></div>
-              </div>
-              <div>
-                <span>Specs</span>
-                <div class="eia-list" id="eiaSpecsList"></div>
-              </div>
-            </div>
-          </div>
-          <div class="evidence-block">
-            <h4>Contradicciones detectadas</h4>
-            <div class="alert-list" id="contradictionList"></div>
-          </div>
-          <div class="evidence-block">
-            <h4>Fuentes del caso</h4>
-            <div class="sources-list" id="sourcesList"></div>
-          </div>
-          <div class="evidence-block">
-            <h4>Razonamiento del sistema</h4>
-            <div class="terminal" id="terminal">
-              <div class="terminal-line muted">Esperando ejecución...</div>
-            </div>
+          <div class="kpi-box">
+            <span>Actualización</span>
+            <strong id="updatedAt">--</strong>
           </div>
         </div>
-      </details>
+      </section>
+
+      <section class="screen card hidden" id="evidenceScreen">
+        <div class="section-head">
+          <div>
+            <h2>3. Evidencia técnica</h2>
+            <p class="muted">Trazabilidad por fuente, método y nivel de confianza.</p>
+          </div>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Evidencia">
+          <button class="tab-btn active" data-tab="map">Mapa</button>
+          <button class="tab-btn" data-tab="regulatory">Normativa</button>
+          <button class="tab-btn" data-tab="contradictions">Contradicciones</button>
+          <button class="tab-btn" data-tab="satellite">Satelital</button>
+          <button class="tab-btn" data-tab="environment">Ambiente</button>
+          <button class="tab-btn" data-tab="traceability">Trazabilidad</button>
+        </div>
+
+        <div class="tab-panel active" data-panel="map">
+          <div id="map" class="map-box">
+            <div class="map-placeholder" id="mapPlaceholder">Configura `maps_key` para mapa satelital.</div>
+          </div>
+          <p class="muted small" id="mapStatus">Mapa de soporte para validar límites y contexto.</p>
+        </div>
+
+        <div class="tab-panel" data-panel="regulatory">
+          <h3>Matriz de cumplimiento</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Exigencia</th>
+                <th>Evidencia</th>
+                <th>Estado</th>
+                <th>Confianza</th>
+                <th>Fuente</th>
+              </tr>
+            </thead>
+            <tbody id="complianceTableBody"></tbody>
+          </table>
+          <h3>Referencias regulatorias</h3>
+          <ul id="regulatoryRefsList" class="list"></ul>
+        </div>
+
+        <div class="tab-panel" data-panel="contradictions">
+          <h3>Contradicciones detectadas</h3>
+          <ul id="contradictionsList" class="list"></ul>
+        </div>
+
+        <div class="tab-panel" data-panel="satellite">
+          <div class="two-col">
+            <article class="mini-card">
+              <h4>Planet scenes</h4>
+              <p><strong>Escenas:</strong> <span id="planetCount">--</span></p>
+              <p><strong>Última:</strong> <span id="planetLatest">--</span></p>
+              <p><strong>Nubosidad:</strong> <span id="planetCloud">--</span></p>
+              <p><strong>Confianza:</strong> <span id="planetConfidence">--</span></p>
+            </article>
+            <article class="mini-card">
+              <h4>Processing</h4>
+              <p><strong>NDVI:</strong> <span id="procNdvi">--</span></p>
+              <p><strong>NDWI:</strong> <span id="procNdwi">--</span></p>
+              <p><strong>Fuente:</strong> <span id="procSource">--</span></p>
+              <p><strong>Confianza:</strong> <span id="procConfidence">--</span></p>
+            </article>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="environment">
+          <div class="two-col">
+            <article class="mini-card">
+              <h4>Aire</h4>
+              <p><strong>AQI:</strong> <span id="envAqi">--</span></p>
+              <p><strong>Categoría:</strong> <span id="envCategory">--</span></p>
+              <p><strong>PM2.5:</strong> <span id="envPm25">--</span></p>
+            </article>
+            <article class="mini-card">
+              <h4>Clima</h4>
+              <p><strong>Temperatura:</strong> <span id="envTemp">--</span></p>
+              <p><strong>Humedad:</strong> <span id="envHumidity">--</span></p>
+              <p><strong>Condición:</strong> <span id="envCondition">--</span></p>
+            </article>
+          </div>
+          <p class="muted small" id="envStatus">Fuente: Google Air Quality + Weather</p>
+        </div>
+
+        <div class="tab-panel" data-panel="traceability">
+          <h3>Cadena de evidencia</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Fuente</th>
+                <th>Timestamp</th>
+                <th>Método</th>
+                <th>Confianza</th>
+                <th>Nota</th>
+              </tr>
+            </thead>
+            <tbody id="traceabilityBody"></tbody>
+          </table>
+
+          <h3>Razonamiento del sistema</h3>
+          <div class="terminal" id="terminal"></div>
+        </div>
+      </section>
+
+      <section class="screen card hidden" id="exportScreen">
+        <div class="section-head">
+          <div>
+            <h2>4. Exportar</h2>
+            <p class="muted">Entrega ejecutiva + anexo técnico.</p>
+          </div>
+        </div>
+
+        <h3>Hoja de corrección</h3>
+        <ul id="roadmapList" class="list"></ul>
+
+        <div class="setup-actions">
+          <button class="primary" id="exportJsonBtn" type="button">Descargar JSON</button>
+          <button class="primary" id="exportPdfBtn" type="button">Descargar PDF</button>
+        </div>
+      </section>
 
       <footer class="footer">
-        Demo ejecutiva: evidencia simulada hasta integrar datasets regulatorios y satelitales oficiales.
+        Esta plataforma es un complemento de due diligence y no reemplaza el EIA legal oficial.
       </footer>
     </div>
 
-  <script src="config.js"></script>
-  <script src="app.js"></script>
-</body>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
 </html>

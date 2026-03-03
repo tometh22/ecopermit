@@ -1,49 +1,66 @@
 # Backend API
 
-Node/Express backend for the Forensic Environmental Auditor demo.
+Node/Express backend for **Forensic Environmental Auditor v2**.
 
 ## Setup
 
-1. `cp .env.example .env` and edit as needed.
+1. `cp .env.example .env` and set env vars.
 2. `npm install`
 3. `npm run dev`
 
 Server defaults to `http://localhost:5050`.
 
-## Endpoints
+## v2 Endpoints
 
-- `GET /api/health`
-- `POST /api/projects` (multipart/form-data)
-  - Fields: `name`, `industry`, `scenario`, `lat`, `lng`, `claims`, `specs`, `caseId`, `boundary` (GeoJSON string)
-  - File: `file` (PDF/TXT)
-- `GET /api/projects`
-- `GET /api/projects/:id`
-- `POST /api/audits`
-  - Body: `{ projectId, caseId, boundary }` or `{ projectName, claims, specs, lat, lng, caseId, boundary }`
-- `GET /api/audits/:id`
-- `GET /api/audits/:id/stream` (Server-Sent Events)
+- `GET /api/v2/health`
+- `POST /api/v2/cases` (multipart/form-data)
+  - Fields: `name`, `projectType`, `mode`, `lat`, `lng`, `boundary` (GeoJSON string), `claims`, `specs`, `metadata`, `documentText`
+  - File: `file` (PDF/TXT optional)
+- `GET /api/v2/cases`
+- `GET /api/v2/cases/:id`
+- `POST /api/v2/cases/:id/runs`
+  - Body supports overrides: `mode`, `claims`, `specs`, `lat`, `lng`, `boundary`, `documentText`
+- `GET /api/v2/runs/:id`
+- `GET /api/v2/runs/:id/stream` (SSE)
+- `GET /api/v2/runs/:id/report?format=json|pdf`
+- `POST /api/v2/cases/:id/monitoring`
+  - Body: `enabled`, `frequency` (`hourly|daily|weekly`), `thresholdDeltaIcet`, `nextRunAt`
+- `GET /api/v2/cases/:id/monitoring`
+
+## Legacy v1 compatibility
+
+Legacy endpoints remain for one transition version:
+
+- `/api/projects`
+- `/api/audits`
+
+Responses include deprecation metadata (`LEGACY_API_DEPRECATION_DATE`).
+
+## Persistence
+
+- Default: JSON store in `backend/data/v2-db.json`
+- Optional PostgreSQL: set `DATABASE_URL`
+  - If `pg` is unavailable or connection fails, backend falls back to JSON store.
+
+## Living EIA worker
+
+Run scheduled monitoring worker:
+
+```bash
+npm run worker
+```
+
+Worker polls monitoring configs and creates periodic `LIVING_EIA` runs.
+
+## Tests
+
+```bash
+npm test
+```
+
+Includes unit tests for scoring, inconsistency, and geometry utilities.
 
 ## Notes
 
-- Regulatory RAG and geospatial checks are simulated; replace `auditEngine.js` with real vector DB + GIS integrations.
-- Optional OpenAI step: set `OPENAI_API_KEY` to enable GPT-backed regulatory insights.
-- You can override the model with `OPENAI_MODEL` and tweak reasoning with `OPENAI_REASONING_EFFORT`.
-- EIA extraction: set `EIA_EXTRACT_MODE=auto` (default) to parse the PDF into structured facts.
-- OCR (server-side): set `OCR_MODE=auto` to run OCR when PDF text is missing.
-  - `OCR_MIN_TEXT_CHARS` threshold (default 500).
-  - `OCR_LANG` (default `spa+eng`).
-  - `OCR_MAX_PAGES` (0 = all pages).
-  - `OCR_SCALE` (render scale, default 2).
-- Optional environment signals: set `GOOGLE_ENV_API_KEY` to enable Air Quality + Weather context.
-- Optional satellite pack: `SATELLITE_MODE=demo` (default) or `disabled`.
-- Optional territorial signals (OSM/Overpass): `OVERPASS_ENDPOINT`, `OVERPASS_RADIUS_M`, `OVERPASS_TIMEOUT_MS`.
-- Optional Planet Data API: `PLANET_API_KEY`, `PLANET_ITEM_TYPES`, `PLANET_LOOKBACK_DAYS`, `PLANET_MAX_CLOUD`.
-- Planet Stats API: `PLANET_STATS_INTERVAL` (month/week/day) and optional `PLANET_STATS_UTC_OFFSET`.
-- Optional Planet Processing (Stats): requires OAuth client ID/secret and a stats endpoint.
-  - `PLANET_OAUTH_CLIENT_ID`, `PLANET_OAUTH_CLIENT_SECRET`
-  - `PLANET_OAUTH_TOKEN_URL` (default: Sentinel Hub OAuth)
-  - `PLANET_SH_STATS_URL` (default: Sentinel Hub Statistics API)
-  - `PLANET_SH_COLLECTION_ID` (BYOC collection, optional)
-  - `PLANET_SH_DATA_TYPE` (e.g. `byoc` when using BYOC)
-  - `PLANET_SH_TIME_RANGE_DAYS`, `PLANET_SH_RES`, `PLANET_SH_MAX_CLOUD`
-- Data is stored locally in `backend/data/db.json`.
+- This is a due-diligence support engine and does **not** replace legal EIA filings.
+- External providers (Google/Planet/OpenAI/Overpass) are optional; engine degrades gracefully when unavailable.

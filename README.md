@@ -1,138 +1,81 @@
-# Forensic Environmental Auditor Demo
+# Forensic Environmental Auditor v2
 
-Front-end dashboard + backend API that highlight discrepancies between project claims and regulatory requirements.
+Plataforma de due diligence ambiental con tres modos:
 
-## Run (Local)
+- `Pre‑EIA`: filtro temprano de riesgo territorial.
+- `EIA QA`: auditoría de consistencia para EIA existente.
+- `Living EIA`: monitoreo periódico con alertas por cambio.
 
-1. Start the backend:
-   ```bash
-   cd backend
-   cp .env.example .env
-   npm install
-   npm run dev
-   ```
-2. Open `index.html` in a browser.
+> Nota legal: esta app complementa análisis técnico y no reemplaza el EIA oficial requerido por autoridad.
 
-By default the UI calls `http://localhost:5050`. To target a different API, open the UI with:
+## Arquitectura
 
-```
-index.html?api=https://your-api.example.com
-```
+- Frontend estático: `index.html`, `styles.css`, `app.js`, `config.js`
+- Backend API Node/Express: `backend/src`
+- API v2: casos + runs + evidencia + export
+- Compat legacy: `/api/projects` y `/api/audits` (deprecados)
 
-This saves the API base URL in `localStorage` for future sessions.
+## Ejecución local
 
-## Demo Cases
+### 1) Backend
 
-Load the Lawen demo dataset (based on press sources) with:
-
-```
-index.html?case=lawen
+```bash
+cd backend
+cp .env.example .env
+npm install
+npm run dev
 ```
 
-## Boundary Polygon (Exact)
+Backend por defecto: `http://localhost:5050`
 
-Upload a `KML` or `GeoJSON` file in the **Datos del proyecto** section to draw the exact boundary polygon.
+### 2) Frontend
 
-## Google Maps (Satellite)
+Abre `index.html` directamente en el navegador.
 
-Provide a Google Maps JavaScript API key at runtime:
+Opcionalmente puedes pasar query params:
 
-```
-index.html?maps_key=YOUR_GOOGLE_MAPS_KEY
-```
+- `?api=https://tu-backend` para API base
+- `?maps_key=TU_GOOGLE_MAPS_KEY` para mapa satelital
 
-The key is stored in `localStorage` for the browser session and enables the satellite basemap.
+## Configuración de claves
 
-Alternatively, set it once in `config.js`:
+### Frontend (`config.js`)
 
-```
+```js
 window.APP_CONFIG = {
-  GMAPS_API_KEY: "YOUR_GOOGLE_MAPS_KEY",
-  API_BASE_URL: "https://your-backend.example.com"
+  GMAPS_API_KEY: "",
+  API_BASE_URL: "https://tu-backend.onrender.com",
 };
 ```
 
-## Air Quality + Weather Context
+### Backend (`backend/.env`)
 
-To enable environmental context signals (AQI + weather), set this in the backend `.env` (or Render env vars):
+- OpenAI: `OPENAI_API_KEY`
+- Google Air/Weather: `GOOGLE_ENV_API_KEY`
+- Planet Data: `PLANET_API_KEY`
+- Planet Processing: `PLANET_OAUTH_CLIENT_ID`, `PLANET_OAUTH_CLIENT_SECRET`
 
-```
-GOOGLE_ENV_API_KEY=YOUR_GOOGLE_API_KEY
-GOOGLE_ENV_CACHE_MS=600000
-```
+## API v2 principal
 
-The key stays server-side. Only the frontend map uses the `maps_key` query param.
+- `POST /api/v2/cases`
+- `GET /api/v2/cases/:id`
+- `POST /api/v2/cases/:id/runs`
+- `GET /api/v2/runs/:id`
+- `GET /api/v2/runs/:id/stream`
+- `GET /api/v2/runs/:id/report?format=json|pdf`
+- `POST /api/v2/cases/:id/monitoring`
+- `GET /api/v2/cases/:id/monitoring`
 
-## EIA Extraction (GPT)
+## Worker Living EIA
 
-When a PDF is uploaded, the backend can extract structured facts (claims/specs, water, buffer, etc.).
-Enable with:
-
-```
-EIA_EXTRACT_MODE=auto
-```
-
-Set `EIA_EXTRACT_MODE=disabled` to skip extraction.
-
-## OCR en backend (PDF escaneado)
-
-Para PDFs escaneados, el backend ejecuta OCR automático si no hay texto embebido:
-
-```
-OCR_MODE=auto
-OCR_MIN_TEXT_CHARS=500
-OCR_LANG=spa+eng
-OCR_MAX_PAGES=0
-OCR_SCALE=2
+```bash
+cd backend
+npm run worker
 ```
 
-`OCR_MAX_PAGES=0` procesa todas las páginas.
+## Tests
 
-## Satellite Evidence (Demo)
-
-Satellite evidence is currently simulated in demo mode. Configure with:
-
+```bash
+cd backend
+npm test
 ```
-SATELLITE_MODE=demo
-```
-
-## Planet Data API (Opcional)
-
-Configura la API key en el backend para obtener señales reales de escenas:
-
-```
-PLANET_API_KEY=YOUR_PLANET_API_KEY
-PLANET_ITEM_TYPES=PSScene
-PLANET_LOOKBACK_DAYS=365
-PLANET_MAX_CLOUD=
-PLANET_STATS_INTERVAL=month
-PLANET_STATS_UTC_OFFSET=
-```
-
-## Planet Processing API (Stats) (Opcional)
-
-Para obtener NDVI/NDWI desde Processing Stats, configura OAuth en el backend:
-
-```
-PLANET_OAUTH_CLIENT_ID=YOUR_CLIENT_ID
-PLANET_OAUTH_CLIENT_SECRET=YOUR_CLIENT_SECRET
-PLANET_OAUTH_TOKEN_URL=https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token
-PLANET_SH_STATS_URL=https://services.sentinel-hub.com/api/v1/statistics
-PLANET_SH_COLLECTION_ID=
-PLANET_SH_DATA_TYPE=
-PLANET_SH_TIME_RANGE_DAYS=90
-PLANET_SH_RES=10
-PLANET_SH_MAX_CLOUD=40
-```
-
-Si usas BYOC, establece `PLANET_SH_COLLECTION_ID` y `PLANET_SH_DATA_TYPE=byoc`.
-
-## Demo Logic
-
-- Regulatory RAG: Simulated retrieval from `Global_Regulatory_Framework` with optional GPT enrichment.
-- Consistency Auditor: Flags `CRITICAL_ALERT` when claims include `Neutral Impact` and specs include `Resource Extraction` or `Discharge`.
-- Geospatial Verifier: Checks coordinates against simulated restricted zones (Wetlands, Native Forests, Fault Lines).
-
-## Export
-
-The **Generate Correction Roadmap** button opens a print-ready window. Use your browser print dialog to save as PDF.

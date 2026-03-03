@@ -1127,4 +1127,5 @@ const runAudit = async ({
 
 module.exports = {
   runAudit,
+  extractEiaInsights,
 };
