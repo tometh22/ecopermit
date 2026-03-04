@@ -9,12 +9,29 @@
   <body>
     <div class="app-shell">
       <header class="hero">
-        <div>
+        <div class="hero-main">
           <p class="eyebrow">Forensic Environmental Auditor v2</p>
           <h1>Pre‑EIA, EIA QA y Living EIA en un flujo claro</h1>
-          <p class="subtitle">
+          <p class="subtitle" id="heroSubtitle">
             Motor de decisión temprana para desarrollo territorial. Resultado ejecutivo en menos de 90 segundos.
           </p>
+          <div class="hero-points">
+            <article class="hero-point">
+              <span class="hero-point-label">Objetivo</span>
+              <strong>Decidir rápido</strong>
+              <p>Apto, rediseño o no-go con evidencia trazable.</p>
+            </article>
+            <article class="hero-point">
+              <span class="hero-point-label">Cobertura</span>
+              <strong>3 modos de uso</strong>
+              <p>Pre‑EIA, QA de EIA existente y monitoreo continuo.</p>
+            </article>
+            <article class="hero-point">
+              <span class="hero-point-label">Salida</span>
+              <strong>Acción concreta</strong>
+              <p>Hoja de corrección con prioridad, costo y plazo.</p>
+            </article>
+          </div>
         </div>
         <div class="mode-switch" role="tablist" aria-label="Modos">
           <button class="mode-btn active" type="button" id="modePreBtn" data-mode="PRE_EIA">Pre‑EIA</button>
@@ -22,6 +39,37 @@
           <button class="mode-btn" type="button" id="modeLivingBtn" data-mode="LIVING_EIA">Living EIA</button>
         </div>
       </header>
+
+      <nav class="flow-rail" id="flowRail" aria-label="Flujo del análisis">
+        <div class="flow-step active" data-flow="setup">
+          <span>1</span>
+          <div>
+            <strong>Setup</strong>
+            <small>Datos mínimos del caso</small>
+          </div>
+        </div>
+        <div class="flow-step" data-flow="results">
+          <span>2</span>
+          <div>
+            <strong>Resultado</strong>
+            <small>Decisión y score ICET</small>
+          </div>
+        </div>
+        <div class="flow-step" data-flow="evidence">
+          <span>3</span>
+          <div>
+            <strong>Evidencia</strong>
+            <small>Normativa, satelital y trazabilidad</small>
+          </div>
+        </div>
+        <div class="flow-step" data-flow="export">
+          <span>4</span>
+          <div>
+            <strong>Exportar</strong>
+            <small>Paquete ejecutivo y técnico</small>
+          </div>
+        </div>
+      </nav>
 
       <section class="screen card" id="setupScreen">
         <div class="section-head">
@@ -126,6 +174,12 @@
           </div>
           <div class="status-chip" id="modeBadge">Modo: Pre‑EIA</div>
         </div>
+
+        <article class="decision-banner neutral" id="decisionBanner">
+          <span class="banner-label">Estado del caso</span>
+          <strong id="decisionBannerTitle">Pendiente de ejecución</strong>
+          <p id="decisionBannerText">Carga el caso y ejecuta el análisis para obtener recomendación.</p>
+        </article>
 
         <div class="result-grid">
           <article class="decision-card">

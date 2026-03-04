@@ -60,7 +60,9 @@ const state = {
 };
 
 const elements = {
+  heroSubtitle: document.getElementById("heroSubtitle"),
   modeButtons: Array.from(document.querySelectorAll(".mode-btn")),
+  flowSteps: Array.from(document.querySelectorAll(".flow-step")),
   stageChip: document.getElementById("stageChip"),
   modeBadge: document.getElementById("modeBadge"),
   setupScreen: document.getElementById("setupScreen"),
@@ -97,6 +99,9 @@ const elements = {
   decisionLabel: document.getElementById("decisionLabel"),
   decisionNote: document.getElementById("decisionNote"),
   overallConfidence: document.getElementById("overallConfidence"),
+  decisionBanner: document.getElementById("decisionBanner"),
+  decisionBannerTitle: document.getElementById("decisionBannerTitle"),
+  decisionBannerText: document.getElementById("decisionBannerText"),
   icetGauge: document.getElementById("icetGauge"),
   icetValue: document.getElementById("icetValue"),
   exposureLevel: document.getElementById("exposureLevel"),
@@ -160,6 +165,16 @@ const modeLabel = (mode) => {
     return "Living EIA";
   }
   return "Pre‑EIA";
+};
+
+const modeSubtitle = (mode) => {
+  if (mode === "EIA_QA") {
+    return "Audita un EIA existente: detecta contradicciones entre claims, ingeniería, normativa y señales territoriales.";
+  }
+  if (mode === "LIVING_EIA") {
+    return "Monitorea cambios del caso en el tiempo: nuevas alertas, delta ICET y trazabilidad por corrida.";
+  }
+  return "Filtro temprano de inversión territorial para decidir en minutos antes de gastar meses en ingeniería.";
 };
 
 const toIsoDate = (value) => {
@@ -247,6 +262,20 @@ const setStage = (stage) => {
   elements.evidenceScreen.classList.toggle("hidden", stage === "setup");
   elements.exportScreen.classList.toggle("hidden", stage === "setup");
 
+  const flowState = {
+    setup: "setup",
+    running: "setup",
+    results: "results",
+  };
+  const currentFlow = flowState[stage] || "setup";
+  const reached = currentFlow === "results" ? ["setup", "results", "evidence", "export"] : ["setup"];
+
+  elements.flowSteps.forEach((step) => {
+    const flow = step.dataset.flow;
+    step.classList.toggle("active", flow === currentFlow);
+    step.classList.toggle("done", reached.includes(flow) && flow !== currentFlow);
+  });
+
   if (stage === "running") {
     elements.primaryActionBtn.disabled = true;
     elements.primaryActionBtn.textContent = "Ejecutando...";
@@ -266,6 +295,9 @@ const updateModeUI = () => {
     const active = btn.dataset.mode === state.mode;
     btn.classList.toggle("active", active);
   });
+  if (elements.heroSubtitle) {
+    elements.heroSubtitle.textContent = modeSubtitle(state.mode);
+  }
   elements.modeBadge.textContent = `Modo: ${modeLabel(state.mode)}`;
   if (elements.monitoringBlock) {
     elements.monitoringBlock.classList.toggle("hidden", state.mode !== "LIVING_EIA");
@@ -441,6 +473,17 @@ const setGauge = (value) => {
 const renderExecutive = (run) => {
   const executive = run.executiveResult || {};
   const confidence = run.evidencePack?.confidence?.overall;
+  const decisionValue = String(executive.decision?.value || "").toUpperCase();
+  const bannerTone =
+    decisionValue === "GO"
+      ? "positive"
+      : decisionValue === "GO_WITH_MINOR_MITIGATIONS"
+        ? "caution"
+        : decisionValue === "GO_WITH_STRUCTURAL_REDESIGN"
+          ? "high"
+          : decisionValue === "NO_GO"
+            ? "critical"
+            : "neutral";
 
   elements.decisionLabel.textContent = executive.decision?.label || "Sin decisión";
   elements.decisionNote.textContent = executive.decision?.note || "";
@@ -448,6 +491,13 @@ const renderExecutive = (run) => {
     ? `${confidence.level} (${Math.round(confidence.score * 100)}%)`
     : "--";
   elements.exposureLevel.textContent = executive.exposureLevel || "--";
+
+  if (elements.decisionBanner) {
+    elements.decisionBanner.className = `decision-banner ${bannerTone}`;
+    elements.decisionBannerTitle.textContent = executive.decision?.label || "Pendiente";
+    elements.decisionBannerText.textContent =
+      executive.decision?.note || "Sin información para recomendar una decisión de negocio.";
+  }
 
   setGauge(executive.icet || 0);
 
@@ -881,6 +931,12 @@ const clearCase = () => {
   state.currentCaseId = "";
   state.currentRun = null;
   state.caseDirty = true;
+
+  if (elements.decisionBanner) {
+    elements.decisionBanner.className = "decision-banner neutral";
+    elements.decisionBannerTitle.textContent = "Pendiente de ejecución";
+    elements.decisionBannerText.textContent = "Carga el caso y ejecuta el análisis para obtener recomendación.";
+  }
 
   setStage("setup");
   resetLog();
