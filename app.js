@@ -80,9 +80,14 @@ const elements = {
 
   fileInput: document.getElementById("fileInput"),
   chooseFileBtn: document.getElementById("chooseFileBtn"),
+  chooseBoundaryBtn: document.getElementById("chooseBoundaryBtn"),
   fileNameLabel: document.getElementById("fileNameLabel"),
   boundaryInput: document.getElementById("boundaryInput"),
   boundaryStatus: document.getElementById("boundaryStatus"),
+  checkLocation: document.getElementById("checkLocation"),
+  checkBoundary: document.getElementById("checkBoundary"),
+  checkEia: document.getElementById("checkEia"),
+  checkClaims: document.getElementById("checkClaims"),
 
   loadLawenBtn: document.getElementById("loadLawenBtn"),
   clearCaseBtn: document.getElementById("clearCaseBtn"),
@@ -273,6 +278,27 @@ const setMessage = (message, level = "info") => {
   elements.setupMessage.style.background = level === "error" ? "#fff0f2" : "#f5f8ff";
 };
 
+const setCheck = (element, ok, label) => {
+  if (!element) {
+    return;
+  }
+  element.className = `check ${ok ? "done" : "pending"}`;
+  element.textContent = `${ok ? "Listo" : "Pendiente"} · ${label}`;
+};
+
+const updateChecklist = () => {
+  const coords = getCoordinates();
+  const hasBoundary = Boolean(state.boundaryGeoJSON);
+  const hasEia = Boolean(state.selectedFile);
+  const hasClaims = Boolean(String(elements.claims.value || "").trim());
+  const hasSpecs = Boolean(String(elements.specs.value || "").trim());
+
+  setCheck(elements.checkLocation, Boolean(coords), "Ubicación cargada");
+  setCheck(elements.checkBoundary, hasBoundary, "Polígono de predio");
+  setCheck(elements.checkEia, hasEia, "Documento EIA");
+  setCheck(elements.checkClaims, hasClaims && hasSpecs, "Claims y specs completos");
+};
+
 const validateSetup = () => {
   const errors = [];
 
@@ -427,7 +453,19 @@ const renderExecutive = (run) => {
 
   const alerts = executive.topAlerts || [];
   elements.topAlerts.innerHTML = alerts.length
-    ? alerts.map((item) => `<li><strong>[${item.severity}]</strong> ${item.type}: ${item.message}</li>`).join("")
+    ? alerts
+        .map((item) => {
+          const severity = String(item.severity || "Media");
+          const severityClass =
+            severity === "Bloqueante" ? "crit" : severity === "Alta" ? "high" : severity === "Media" ? "med" : "low";
+          return `
+            <li class="alert-row">
+              <span class="sev ${severityClass}">${severity}</span>
+              <div><strong>${item.type}</strong> · ${item.message}</div>
+            </li>
+          `;
+        })
+        .join("")
     : "<li>Sin alertas relevantes.</li>";
 
   const indices = executive.indices || [];
@@ -473,7 +511,14 @@ const renderRegulatory = (run) => {
 const renderContradictions = (run) => {
   const list = run.evidencePack?.contradictions || [];
   elements.contradictionsList.innerHTML = list.length
-    ? list.map((item) => `<li><strong>[${item.severity}]</strong> ${item.message}</li>`).join("")
+    ? list
+        .map((item) => {
+          const severity = String(item.severity || "Media");
+          const severityClass =
+            severity === "Bloqueante" ? "crit" : severity === "Alta" ? "high" : severity === "Media" ? "med" : "low";
+          return `<li class="alert-row"><span class="sev ${severityClass}">${severity}</span><div>${item.message}</div></li>`;
+        })
+        .join("")
     : "<li>Sin contradicciones automáticas.</li>";
 };
 
@@ -784,6 +829,7 @@ const onPrimaryAction = async () => {
 
 const markDirty = () => {
   state.caseDirty = true;
+  updateChecklist();
   if (state.stage === "results") {
     setStage("setup");
     setMessage("Cambios detectados. Ejecuta nuevamente para actualizar resultados.");
@@ -839,6 +885,7 @@ const clearCase = () => {
   setStage("setup");
   resetLog();
   setGauge(0);
+  updateChecklist();
   setMessage("Caso limpio. Completa datos mínimos para iniciar.");
 };
 
@@ -895,6 +942,9 @@ const bindEvents = () => {
   });
 
   elements.chooseFileBtn.addEventListener("click", () => elements.fileInput.click());
+  if (elements.chooseBoundaryBtn) {
+    elements.chooseBoundaryBtn.addEventListener("click", () => elements.boundaryInput.click());
+  }
   elements.fileInput.addEventListener("change", (event) => {
     const file = event.target.files?.[0] || null;
     state.selectedFile = file;
@@ -943,6 +993,7 @@ const bootstrap = () => {
   bindEvents();
   initMap();
   setGauge(0);
+  updateChecklist();
   setMessage("Completa datos mínimos para iniciar.");
   appendLog("System", `Frontend iniciado. API: ${API_BASE_URL}`);
 };

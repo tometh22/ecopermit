@@ -33,17 +33,30 @@
         </div>
 
         <div class="setup-grid">
-          <div class="upload-card">
-            <h3>Documento EIA</h3>
-            <p class="muted">PDF/TXT opcional en Pre‑EIA, recomendado en EIA QA.</p>
-            <input id="fileInput" type="file" accept=".pdf,.txt" />
-            <button class="ghost" id="chooseFileBtn" type="button">Seleccionar archivo</button>
-            <p class="muted small" id="fileNameLabel">Sin archivo</p>
+          <div class="setup-left">
+            <div class="upload-card">
+              <h3>Documento EIA</h3>
+              <p class="muted">PDF/TXT opcional en Pre‑EIA, recomendado en EIA QA.</p>
+              <input id="fileInput" type="file" accept=".pdf,.txt" class="hidden-file" />
+              <button class="ghost file-trigger" id="chooseFileBtn" type="button">Subir EIA (PDF/TXT)</button>
+              <p class="muted small" id="fileNameLabel">Sin archivo</p>
 
-            <h3>Límite del predio</h3>
-            <p class="muted">Sube KML/GeoJSON para evitar polígonos aproximados.</p>
-            <input id="boundaryInput" type="file" accept=".kml,.geojson,.json" />
-            <p class="muted small" id="boundaryStatus">Sin polígono cargado.</p>
+              <h3>Límite del predio</h3>
+              <p class="muted">Sube KML/GeoJSON para evitar polígonos aproximados.</p>
+              <input id="boundaryInput" type="file" accept=".kml,.geojson,.json" class="hidden-file" />
+              <button class="ghost file-trigger" id="chooseBoundaryBtn" type="button">Subir polígono</button>
+              <p class="muted small" id="boundaryStatus">Sin polígono cargado.</p>
+            </div>
+
+            <div class="checklist-card">
+              <h4>Checklist de elegibilidad</h4>
+              <ul class="checklist">
+                <li id="checkLocation" class="check pending">Ubicación cargada</li>
+                <li id="checkBoundary" class="check pending">Polígono de predio</li>
+                <li id="checkEia" class="check pending">Documento EIA (recomendado)</li>
+                <li id="checkClaims" class="check pending">Claims y specs completos</li>
+              </ul>
+            </div>
           </div>
 
           <form class="form" id="setupForm">
@@ -135,7 +148,7 @@
 
           <article class="alerts-card">
             <span class="kicker">Top alertas</span>
-            <ul id="topAlerts" class="list"></ul>
+            <ul id="topAlerts" class="list alerts-list"></ul>
           </article>
         </div>
 
@@ -218,7 +231,7 @@
 
         <div class="tab-panel" data-panel="contradictions">
           <h3>Contradicciones detectadas</h3>
-          <ul id="contradictionsList" class="list"></ul>
+          <ul id="contradictionsList" class="list alerts-list"></ul>
         </div>
 
         <div class="tab-panel" data-panel="satellite">
