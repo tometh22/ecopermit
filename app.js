@@ -473,16 +473,18 @@ const setGauge = (value) => {
 const renderExecutive = (run) => {
   const executive = run.executiveResult || {};
   const confidence = run.evidencePack?.confidence?.overall;
-  const decisionValue = String(executive.decision?.value || "").toUpperCase();
+  const decisionValue = String(executive.decision?.code || executive.decision?.value || "").toUpperCase();
   const bannerTone =
-    decisionValue === "GO"
+    decisionValue === "FIT" || decisionValue === "GO"
       ? "positive"
-      : decisionValue === "GO_WITH_MINOR_MITIGATIONS"
+      : decisionValue === "FIT_WITH_MINOR_MITIGATIONS" || decisionValue === "GO_WITH_MINOR_MITIGATIONS"
         ? "caution"
-        : decisionValue === "GO_WITH_STRUCTURAL_REDESIGN"
+        : decisionValue === "FIT_WITH_STRUCTURAL_REDESIGN" || decisionValue === "GO_WITH_STRUCTURAL_REDESIGN"
           ? "high"
-          : decisionValue === "NO_GO"
+          : decisionValue === "NOT_RECOMMENDED" || decisionValue === "NO_GO"
             ? "critical"
+            : decisionValue === "INCONCLUSIVE"
+              ? "caution"
             : "neutral";
 
   elements.decisionLabel.textContent = executive.decision?.label || "Sin decisión";
@@ -555,7 +557,23 @@ const renderRegulatory = (run) => {
     : '<tr><td colspan="5">Sin matriz disponible.</td></tr>';
 
   const refs = run.evidencePack?.regulatoryRefs || [];
-  elements.regulatoryRefsList.innerHTML = refs.length ? refs.map((ref) => `<li>${ref}</li>`).join("") : "<li>Sin referencias.</li>";
+  const sources = run.evidencePack?.regulatorySources || [];
+  const coverage = run.evidencePack?.sourceCoverage;
+  const warnings = run.evidencePack?.sourceWarnings || [];
+  const sourceSummary = coverage
+    ? `<li><strong>Cobertura:</strong> ${coverage.healthySources}/${coverage.requiredThreshold} fuentes saludables (${coverage.isSufficient ? "Suficiente" : "Insuficiente"})</li>`
+    : "";
+  const sourceRows = sources.map(
+    (source) =>
+      `<li><strong>Fuente:</strong> ${source.name} (${source.authority}) · ${source.status} · matches ${source.matchedCount}</li>`
+  );
+  const warningRows = warnings.map((item) => `<li><strong>Fuente con error:</strong> ${item}</li>`);
+  elements.regulatoryRefsList.innerHTML = [
+    sourceSummary,
+    ...sourceRows,
+    ...warningRows,
+    ...(refs.length ? refs.map((ref) => `<li>${ref}</li>`) : ["<li>Sin referencias.</li>"]),
+  ].join("");
 };
 
 const renderContradictions = (run) => {

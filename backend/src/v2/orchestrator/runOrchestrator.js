@@ -1,6 +1,7 @@
 const { getEnvironmentSignals } = require("../providers/environmentProvider");
 const { getTerritorialSignals } = require("../providers/territorialProvider");
 const { getSatelliteSignals } = require("../providers/satelliteProvider");
+const { getRegulatorySignals } = require("../providers/regulatoryProvider");
 const { getEiaInsights } = require("../providers/eiaProvider");
 const { evaluateRestrictedZones } = require("../engines/restrictedZones");
 const { detectInconsistencies } = require("../engines/inconsistencyEngine");
@@ -55,7 +56,16 @@ const inferRestrictedAreaRatio = ({ overlaps, territorialSignals, boundary }) =>
   return 0.15;
 };
 
-const buildTraceability = ({ caseData, mode, environment, territorialSignals, planetSignals, processingSignals, eia }) => {
+const buildTraceability = ({
+  caseData,
+  mode,
+  environment,
+  territorialSignals,
+  regulatorySignals,
+  planetSignals,
+  processingSignals,
+  eia,
+}) => {
   const now = new Date().toISOString();
   return [
     {
@@ -78,6 +88,15 @@ const buildTraceability = ({ caseData, mode, environment, territorialSignals, pl
       method: "Open data geospatial scan",
       confidence: territorialSignals?.error ? "Baja" : "Media",
       note: territorialSignals?.error || "Señales territoriales calculadas",
+    },
+    {
+      source: "Regulatory Source Registry",
+      timestamp: now,
+      method: "Official georeferenced layers",
+      confidence: regulatorySignals?.coverage?.isSufficient ? "Alta" : "Baja",
+      note: regulatorySignals?.coverage
+        ? `${regulatorySignals.coverage.healthySources}/${regulatorySignals.coverage.requiredThreshold} fuentes saludables`
+        : "Sin cobertura regulatoria",
     },
     {
       source: "Planet",
@@ -112,7 +131,39 @@ const buildRegulatoryRefs = ({ coordinates, overlaps, territorialSignals }) => {
   return Array.from(new Set(refs));
 };
 
-const toLogs = ({ mode, caseData, executiveResult, contradictions, overlaps, environment, planetSignals, processingSignals }) => {
+const buildDecisionWithSufficiency = ({ icet, defaultDecision, regulatorySignals }) => {
+  const coverage = regulatorySignals?.coverage;
+  if (!coverage?.isSufficient) {
+    const missingText = coverage?.missingCritical?.length
+      ? `Faltan fuentes críticas: ${coverage.missingCritical.join(", ")}.`
+      : `Se requieren al menos ${coverage?.requiredThreshold || 1} fuentes regulatorias saludables.`;
+    return {
+      code: "INCONCLUSIVE",
+      value: "INCONCLUSIVE",
+      label: "No concluyente",
+      note: `Resultado provisional. ${missingText}`,
+      exposureLevel: "No concluyente",
+      provisionalIcet: icet,
+    };
+  }
+
+  return {
+    ...defaultDecision,
+    value: defaultDecision.code,
+  };
+};
+
+const toLogs = ({
+  mode,
+  caseData,
+  executiveResult,
+  contradictions,
+  overlaps,
+  environment,
+  planetSignals,
+  processingSignals,
+  regulatorySignals,
+}) => {
   const logs = [
     { agent: "Case_Manager", message: `Modo ${MODE_LABELS[mode]} inicializado para ${caseData.name || "proyecto"}.` },
     { agent: "Validation", message: "Validando geometría, coordenadas y entradas documentales." },
@@ -124,6 +175,18 @@ const toLogs = ({ mode, caseData, executiveResult, contradictions, overlaps, env
 
   if (overlaps.length) {
     logs.push({ agent: "Geospatial_Verifier", message: `${overlaps.length} zonas restringidas intersectadas.` });
+  }
+  if (!regulatorySignals?.coverage?.isSufficient) {
+    logs.push({
+      agent: "Regulatory_Gate",
+      message: `Evidencia regulatoria insuficiente (${regulatorySignals?.coverage?.healthySources || 0}/${regulatorySignals?.coverage?.requiredThreshold || 0}).`,
+    });
+  }
+  if (regulatorySignals?.warnings?.length) {
+    logs.push({
+      agent: "Regulatory_Provider",
+      message: `Fuentes con error: ${regulatorySignals.warnings.join(" | ")}`,
+    });
   }
   if (environment?.errors?.length) {
     logs.push({ agent: "Env_Provider", message: `Contexto parcial: ${environment.errors.join(" | ")}` });
@@ -146,14 +209,15 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
   const coordinates = caseData.location?.coordinates || centroidFromBoundary(caseData.boundaryGeoJSON);
   const boundary = caseData.boundaryGeoJSON || null;
 
-  const [environment, territorialSignals, satellite] = await Promise.all([
+  const [environment, territorialSignals, satellite, regulatorySignals] = await Promise.all([
     getEnvironmentSignals(coordinates),
     getTerritorialSignals({ coordinates, boundary }),
     getSatelliteSignals({ coordinates, boundary }),
+    getRegulatorySignals({ coordinates, boundary }),
   ]);
 
   const eia = await getEiaInsights(caseData.documents?.studyText || "");
-  const overlaps = evaluateRestrictedZones({ coordinates, boundary });
+  const overlaps = evaluateRestrictedZones({ coordinates, boundary, regulatorySignals });
   const { derivedClaims, derivedSpecs } = parseClaimsSpecs({
     claims: caseData.claims,
     specs: caseData.specs,
@@ -189,21 +253,34 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
   });
 
   const icet = computeIcet({ indices, penalties });
-  const decision = decisionFromIcet(icet);
+  const baseDecision = decisionFromIcet(icet);
+  const decision = buildDecisionWithSufficiency({
+    icet,
+    defaultDecision: baseDecision,
+    regulatorySignals,
+  });
   const alerts = buildAlerts({
     contradictions,
     overlaps,
     territorialSignals,
     planetSignals: satellite.planetSignals,
     environment,
+    regulatorySignals,
   });
 
-  const regulatoryRefs = buildRegulatoryRefs({ coordinates, overlaps, territorialSignals });
+  const regulatoryRefs = Array.from(
+    new Set(
+      buildRegulatoryRefs({ coordinates, overlaps, territorialSignals }).concat(
+        regulatorySignals?.regulatoryRefs || []
+      )
+    )
+  );
   const complianceMatrix = buildComplianceMatrix({
     contradictions,
     overlaps,
     regulatoryRefs,
     mode: selectedMode,
+    regulatorySignals,
   });
 
   const confidence = buildConfidencePack({
@@ -212,6 +289,7 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
     planetSignals: satellite.planetSignals,
     planetProcessingSignals: satellite.processingSignals,
     eia,
+    regulatorySignals,
   });
 
   const executiveResult = {
@@ -222,6 +300,9 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
     indices,
     penalties,
     restrictedAreaRatio,
+    conclusive: Boolean(regulatorySignals?.coverage?.isSufficient),
+    provisional: decision.code === "INCONCLUSIVE",
+    sourceCoverage: regulatorySignals?.coverage || null,
     updatedAt: new Date().toISOString(),
   };
 
@@ -236,11 +317,15 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
     contradictions,
     complianceMatrix,
     confidence,
+    regulatorySources: regulatorySignals?.sources || [],
+    sourceCoverage: regulatorySignals?.coverage || null,
+    sourceWarnings: regulatorySignals?.warnings || [],
     traceability: buildTraceability({
       caseData,
       mode: selectedMode,
       environment,
       territorialSignals,
+      regulatorySignals,
       planetSignals: satellite.planetSignals,
       processingSignals: satellite.processingSignals,
       eia,
@@ -261,6 +346,7 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
     contradictions: contradictions.length,
     overlaps: overlaps.length,
     confidence: confidence.overall,
+    regulatoryEvidenceSufficient: Boolean(regulatorySignals?.coverage?.isSufficient),
   };
 
   const logs = toLogs({
@@ -272,6 +358,7 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
     environment,
     planetSignals: satellite.planetSignals,
     processingSignals: satellite.processingSignals,
+    regulatorySignals,
   });
 
   if (monitoringContext) {
@@ -295,4 +382,5 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
 module.exports = {
   runCaseAnalysis,
   ensureMode,
+  buildDecisionWithSufficiency,
 };

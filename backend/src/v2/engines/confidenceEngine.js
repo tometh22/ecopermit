@@ -27,7 +27,14 @@ const confidenceFromSource = ({ hasData, hasError, sourceType }) => {
   return 0.5;
 };
 
-const buildConfidencePack = ({ environment, territorialSignals, planetSignals, planetProcessingSignals, eia }) => {
+const buildConfidencePack = ({
+  environment,
+  territorialSignals,
+  planetSignals,
+  planetProcessingSignals,
+  eia,
+  regulatorySignals,
+}) => {
   const environmentScore = confidenceFromSource({
     hasData: Boolean(environment?.airQuality || environment?.weather),
     hasError: Boolean(environment?.errors?.length),
@@ -58,15 +65,31 @@ const buildConfidencePack = ({ environment, territorialSignals, planetSignals, p
     sourceType: "llm_extraction",
   });
 
+  const regulatoryScore = confidenceFromSource({
+    hasData: Boolean(regulatorySignals?.coverage?.healthySources),
+    hasError: Boolean(!regulatorySignals?.coverage?.isSufficient),
+    sourceType: "official_api",
+  });
+
+  const overallScore = (
+    environmentScore
+    + territorialScore
+    + planetScore
+    + processingScore
+    + eiaScore
+    + regulatoryScore
+  ) / 6;
+
   return {
     environment: { score: environmentScore, level: toBand(environmentScore) },
     territorial: { score: territorialScore, level: toBand(territorialScore) },
     planet: { score: planetScore, level: toBand(planetScore) },
     processing: { score: processingScore, level: toBand(processingScore) },
     eia: { score: eiaScore, level: toBand(eiaScore) },
+    regulatory: { score: regulatoryScore, level: toBand(regulatoryScore) },
     overall: {
-      score: (environmentScore + territorialScore + planetScore + processingScore + eiaScore) / 5,
-      level: toBand((environmentScore + territorialScore + planetScore + processingScore + eiaScore) / 5),
+      score: overallScore,
+      level: toBand(overallScore),
     },
   };
 };

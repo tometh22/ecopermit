@@ -54,6 +54,11 @@ window.APP_CONFIG = {
 - Google Air/Weather: `GOOGLE_ENV_API_KEY`
 - Planet Data: `PLANET_API_KEY`
 - Planet Processing: `PLANET_OAUTH_CLIENT_ID`, `PLANET_OAUTH_CLIENT_SECRET`
+- Fuentes regulatorias georreferenciadas:
+  - `REGULATORY_SOURCES_FILE` (ruta a JSON) o `REGULATORY_SOURCES_JSON`
+  - `REGULATORY_MIN_HEALTHY_SOURCES` (mínimo para resultado concluyente)
+  - `REGULATORY_USE_FALLBACK_CATALOG=false` recomendado para evitar catálogo demo
+  - plantilla: `backend/config/regulatory-sources.example.json`
 
 ## API v2 principal
 
@@ -65,6 +70,11 @@ window.APP_CONFIG = {
 - `GET /api/v2/runs/:id/report?format=json|pdf`
 - `POST /api/v2/cases/:id/monitoring`
 - `GET /api/v2/cases/:id/monitoring`
+- `GET /api/v2/regulatory/sources`
+
+## Nota de calidad de evidencia
+
+Si faltan fuentes regulatorias críticas, la decisión pasa a `No concluyente` y el resultado se marca como provisional.
 
 ## Worker Living EIA
 

@@ -1,7 +1,8 @@
 const VECTOR_DB_NAMESPACE = process.env.VECTOR_DB_NAMESPACE || "Global_Regulatory_Framework";
 
-const buildComplianceMatrix = ({ contradictions, overlaps, regulatoryRefs, mode }) => {
+const buildComplianceMatrix = ({ contradictions, overlaps, regulatoryRefs, mode, regulatorySignals }) => {
   const matrix = [];
+  const sourceCoverage = regulatorySignals?.coverage || null;
 
   matrix.push({
     requirement: `${VECTOR_DB_NAMESPACE} - Compatibilidad de uso y localización`,
@@ -31,6 +32,16 @@ const buildComplianceMatrix = ({ contradictions, overlaps, regulatoryRefs, mode 
     status: regulatoryRefs.length ? "Parcial" : "Parcial",
     confidence: regulatoryRefs.length ? "Media" : "Baja",
     source: "Regulatory RAG",
+  });
+
+  matrix.push({
+    requirement: `${VECTOR_DB_NAMESPACE} - Suficiencia de fuentes oficiales georreferenciadas`,
+    evidence: sourceCoverage
+      ? `${sourceCoverage.healthySources} fuentes saludables / ${sourceCoverage.requiredThreshold} requeridas.`
+      : "Sin evaluación de cobertura regulatoria.",
+    status: sourceCoverage?.isSufficient ? "Cumple" : "No concluyente",
+    confidence: sourceCoverage?.isSufficient ? "Alta" : "Baja",
+    source: "Regulatory Source Registry",
   });
 
   if (mode === "LIVING_EIA") {

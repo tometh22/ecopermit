@@ -5,14 +5,16 @@ Node/Express backend for **Forensic Environmental Auditor v2**.
 ## Setup
 
 1. `cp .env.example .env` and set env vars.
-2. `npm install`
-3. `npm run dev`
+2. (Opcional recomendado) copia `backend/config/regulatory-sources.example.json` y reemplaza URLs por capas oficiales.
+3. `npm install`
+4. `npm run dev`
 
 Server defaults to `http://localhost:5050`.
 
 ## v2 Endpoints
 
 - `GET /api/v2/health`
+- `GET /api/v2/regulatory/sources` (registry activo + thresholds)
 - `POST /api/v2/cases` (multipart/form-data)
   - Fields: `name`, `projectType`, `mode`, `lat`, `lng`, `boundary` (GeoJSON string), `claims`, `specs`, `metadata`, `documentText`
   - File: `file` (PDF/TXT optional)
@@ -64,3 +66,5 @@ Includes unit tests for scoring, inconsistency, and geometry utilities.
 
 - This is a due-diligence support engine and does **not** replace legal EIA filings.
 - External providers (Google/Planet/OpenAI/Overpass) are optional; engine degrades gracefully when unavailable.
+- Regulatory evidence gate: if critical georeferenced sources are not healthy, decision is set to `No concluyente` and score is considered provisional.
+- Para activar fuentes regulatorias reales: define `REGULATORY_SOURCES_FILE=backend/config/regulatory-sources.json`.

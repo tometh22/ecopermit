@@ -1,4 +1,5 @@
 const { boundsFromPolygon } = require("../utils/geo");
+const REGULATORY_USE_FALLBACK_CATALOG = String(process.env.REGULATORY_USE_FALLBACK_CATALOG || "").toLowerCase() === "true";
 
 const RESTRICTED_ZONES = [
   {
@@ -45,7 +46,30 @@ const containsPoint = (bounds, point) =>
   && point.lng >= bounds.minLng
   && point.lng <= bounds.maxLng;
 
-const evaluateRestrictedZones = ({ coordinates, boundary }) => {
+const normalizeExternalOverlap = (item) => ({
+  name: item.name || item.sourceName || "Zona regulatoria",
+  type: item.type || "Restricción",
+  law: item.law || item.legalRef || item.sourceName || "Fuente regulatoria",
+  sourceId: item.sourceId || "",
+  sourceName: item.sourceName || "",
+  authority: item.authority || "",
+  citationUrl: item.citationUrl || "",
+  severity: item.severity || "Media",
+});
+
+const evaluateRestrictedZones = ({ coordinates, boundary, regulatorySignals }) => {
+  const fromRegistry = Array.isArray(regulatorySignals?.overlaps)
+    ? regulatorySignals.overlaps.map(normalizeExternalOverlap)
+    : [];
+
+  if (fromRegistry.length) {
+    return fromRegistry;
+  }
+
+  if (!REGULATORY_USE_FALLBACK_CATALOG) {
+    return [];
+  }
+
   const polygonBounds = boundsFromPolygon(boundary);
   if (!polygonBounds && !coordinates) {
     return [];

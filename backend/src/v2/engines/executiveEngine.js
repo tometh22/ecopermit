@@ -11,7 +11,7 @@ const topAlerts = (alerts, limit = 5) => {
     .slice(0, limit);
 };
 
-const buildAlerts = ({ contradictions, overlaps, territorialSignals, planetSignals, environment }) => {
+const buildAlerts = ({ contradictions, overlaps, territorialSignals, planetSignals, environment, regulatorySignals }) => {
   const alerts = [];
 
   contradictions.forEach((item) => {
@@ -51,6 +51,17 @@ const buildAlerts = ({ contradictions, overlaps, territorialSignals, planetSigna
       type: "Ambiental",
       message: `AQI elevado (${environment.airQuality.aqi}).`,
       severity: "Media",
+    });
+  }
+
+  if (!regulatorySignals?.coverage?.isSufficient) {
+    const missing = regulatorySignals?.coverage?.missingCritical || [];
+    alerts.push({
+      type: "Calidad de evidencia",
+      message: missing.length
+        ? `Faltan fuentes críticas: ${missing.join(", ")}.`
+        : "Fuentes regulatorias insuficientes para decisión concluyente.",
+      severity: "Bloqueante",
     });
   }
 

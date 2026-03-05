@@ -16,6 +16,7 @@ const { fetchPlanetProcessingSignals } = require("./planetProcessingService");
 const { getStore } = require("./v2/persistence/store");
 const { runCaseAnalysis, ensureMode } = require("./v2/orchestrator/runOrchestrator");
 const { buildJsonReport, buildPdfReport } = require("./v2/reporting/reportingService");
+const { getSourceRegistry, getRegistryConfig } = require("./v2/regulatory/sourceRegistry");
 
 dotenv.config();
 
@@ -73,6 +74,15 @@ const validateConfig = () => {
   }
   if (!process.env.PLANET_API_KEY) {
     warnings.push("PLANET_API_KEY missing: Planet Data API disabled.");
+  }
+
+  const sources = getSourceRegistry();
+  const criticalSources = sources.filter((item) => item.critical);
+  const configuredCritical = criticalSources.filter((item) => item.url || item.kind === "inline_geojson");
+  if (!configuredCritical.length) {
+    warnings.push(
+      "No critical regulatory georeferenced sources configured. Results may be marked as 'No concluyente'."
+    );
   }
 
   warnings.forEach((msg) => console.warn(`[config-warning] ${msg}`));
@@ -206,6 +216,26 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/v2/health", (_req, res) => {
   res.json({ status: "ok", version: "v2" });
+});
+
+app.get("/api/v2/regulatory/sources", (_req, res) => {
+  const sources = getSourceRegistry().map((source) => ({
+    id: source.id,
+    name: source.name,
+    authority: source.authority,
+    jurisdiction: source.jurisdiction,
+    type: source.type,
+    legalRef: source.legalRef,
+    citationUrl: source.citationUrl || source.url || "",
+    kind: source.kind,
+    critical: source.critical,
+    configured: Boolean(source.url || source.data),
+  }));
+  const config = getRegistryConfig();
+  res.json({
+    sources,
+    config,
+  });
 });
 
 // ---------------------------------------------------------------------------

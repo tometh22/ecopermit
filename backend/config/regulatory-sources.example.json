@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ar-humedales-oficial",
+    "name": "Inventario provincial de humedales",
+    "authority": "Autoridad ambiental provincial",
+    "jurisdiction": "AR-Buenos Aires",
+    "type": "Humedales",
+    "legalRef": "Normativa provincial de humedales",
+    "citationUrl": "https://autoridad.example.ar/humedales",
+    "kind": "geojson_url",
+    "url": "https://datos.example.ar/humedales.geojson",
+    "critical": true
+  },
+  {
+    "id": "ar-areas-protegidas",
+    "name": "Áreas protegidas",
+    "authority": "Sistema de Áreas Protegidas",
+    "jurisdiction": "AR-Nacional",
+    "type": "Área protegida",
+    "legalRef": "Ley de áreas protegidas",
+    "citationUrl": "https://autoridad.example.ar/areas-protegidas",
+    "kind": "arcgis_feature_service",
+    "url": "https://services.example.gov/arcgis/rest/services/areas_protegidas/FeatureServer/0",
+    "critical": true
+  },
+  {
+    "id": "ar-red-hidrica",
+    "name": "Red hidrográfica",
+    "authority": "Autoridad hídrica",
+    "jurisdiction": "AR-Buenos Aires",
+    "type": "Curso de agua",
+    "legalRef": "Código hídrico y líneas de ribera",
+    "citationUrl": "https://autoridad.example.ar/red-hidrica",
+    "kind": "geojson_url",
+    "url": "https://datos.example.ar/red_hidrica.geojson",
+    "critical": true
+  }
+]

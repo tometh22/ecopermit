@@ -78,6 +78,110 @@ const boundsFromPolygon = (boundary) => {
   return { minLat, maxLat, minLng, maxLng };
 };
 
+const updateBoundsWithPoint = (bounds, lng, lat) => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return bounds;
+  }
+
+  if (!bounds) {
+    return {
+      minLat: lat,
+      maxLat: lat,
+      minLng: lng,
+      maxLng: lng,
+    };
+  }
+
+  return {
+    minLat: Math.min(bounds.minLat, lat),
+    maxLat: Math.max(bounds.maxLat, lat),
+    minLng: Math.min(bounds.minLng, lng),
+    maxLng: Math.max(bounds.maxLng, lng),
+  };
+};
+
+const walkGeometryCoordinates = (geometry, visit) => {
+  if (!geometry || !geometry.type) {
+    return;
+  }
+
+  const coords = geometry.coordinates;
+
+  if (geometry.type === "Point") {
+    visit(coords);
+    return;
+  }
+
+  if (geometry.type === "MultiPoint" || geometry.type === "LineString") {
+    (coords || []).forEach((point) => visit(point));
+    return;
+  }
+
+  if (geometry.type === "MultiLineString" || geometry.type === "Polygon") {
+    (coords || []).forEach((ring) => {
+      (ring || []).forEach((point) => visit(point));
+    });
+    return;
+  }
+
+  if (geometry.type === "MultiPolygon") {
+    (coords || []).forEach((polygon) => {
+      (polygon || []).forEach((ring) => {
+        (ring || []).forEach((point) => visit(point));
+      });
+    });
+    return;
+  }
+
+  if (geometry.type === "GeometryCollection") {
+    (geometry.geometries || []).forEach((sub) => walkGeometryCoordinates(sub, visit));
+  }
+};
+
+const boundsFromGeometry = (geometry) => {
+  let bounds = null;
+  walkGeometryCoordinates(geometry, (point) => {
+    const [lng, lat] = point || [];
+    bounds = updateBoundsWithPoint(bounds, lng, lat);
+  });
+  return bounds;
+};
+
+const boundsFromFeature = (feature) => {
+  if (!feature) {
+    return null;
+  }
+  if (feature.type === "Feature") {
+    return boundsFromGeometry(feature.geometry);
+  }
+  return boundsFromGeometry(feature);
+};
+
+const intersectsBounds = (a, b) => {
+  if (!a || !b) {
+    return false;
+  }
+
+  return (
+    a.minLat <= b.maxLat &&
+    a.maxLat >= b.minLat &&
+    a.minLng <= b.maxLng &&
+    a.maxLng >= b.minLng
+  );
+};
+
+const pointInBounds = (point, bounds) => {
+  if (!point || !bounds) {
+    return false;
+  }
+  return (
+    point.lat >= bounds.minLat &&
+    point.lat <= bounds.maxLat &&
+    point.lng >= bounds.minLng &&
+    point.lng <= bounds.maxLng
+  );
+};
+
 const centroidFromRing = (ring) => {
   if (!Array.isArray(ring) || ring.length === 0) {
     return null;
@@ -115,5 +219,9 @@ module.exports = {
   polygonFromCenter,
   extractRing,
   boundsFromPolygon,
+  boundsFromGeometry,
+  boundsFromFeature,
+  intersectsBounds,
+  pointInBounds,
   centroidFromBoundary,
 };

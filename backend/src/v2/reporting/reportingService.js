@@ -73,6 +73,10 @@ const buildPdfReport = (run) => {
     `ICET: ${result.icet ?? "--"}`,
     `Decision: ${result.decision?.label || "--"}`,
     `Exposure: ${result.exposureLevel || "--"}`,
+    `Conclusive: ${result.conclusive ? "Yes" : "No (provisional)"}`,
+    run.evidencePack?.sourceCoverage
+      ? `Regulatory coverage: ${run.evidencePack.sourceCoverage.healthySources}/${run.evidencePack.sourceCoverage.requiredThreshold}`
+      : "Regulatory coverage: --",
     "",
     "Top alerts:",
     ...(result.topAlerts || []).map((item, idx) => `${idx + 1}. [${item.severity}] ${item.type}: ${item.message}`),
