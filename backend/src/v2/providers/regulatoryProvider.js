@@ -269,6 +269,9 @@ const getRegulatorySignals = async ({ coordinates, boundary }) => {
       type: item.source.type,
       critical: item.source.critical,
       enabled: item.source.enabled,
+      configured: item.source.kind === "reference"
+        ? Boolean(item.source.citationUrl || item.source.legalRef)
+        : Boolean(item.source.url || item.source.data),
       status: item.status,
       featureCount: item.featureCount,
       matchedCount: item.matchedCount,

@@ -181,6 +181,29 @@
           <p id="decisionBannerText">Carga el caso y ejecuta el análisis para obtener recomendación.</p>
         </article>
 
+        <div class="evidence-clarity">
+          <article class="clarity-card" id="clarityCrossCard">
+            <span class="kicker">Cruce normativo oficial</span>
+            <strong id="regCrossStatus">--</strong>
+            <p class="muted" id="regCrossNote">Sin ejecución.</p>
+          </article>
+          <article class="clarity-card">
+            <span class="kicker">Fuentes georreferenciadas</span>
+            <strong id="regSourcesCount">--</strong>
+            <p class="muted" id="regSourcesNote">Sin datos.</p>
+          </article>
+          <article class="clarity-card">
+            <span class="kicker">Fuentes críticas</span>
+            <strong id="regCriticalStatus">--</strong>
+            <p class="muted" id="regCriticalNote">Sin datos.</p>
+          </article>
+          <article class="clarity-card">
+            <span class="kicker">Estado de validez</span>
+            <strong id="regUsabilityStatus">--</strong>
+            <p class="muted" id="regUsabilityNote">Sin datos.</p>
+          </article>
+        </div>
+
         <div class="result-grid">
           <article class="decision-card">
             <span class="kicker">Decisión sugerida</span>
@@ -266,6 +289,29 @@
         </div>
 
         <div class="tab-panel" data-panel="regulatory">
+          <article class="regulatory-proof-card">
+            <h3>¿Se cruzó con normativa oficial?</h3>
+            <div class="proof-grid">
+              <div>
+                <span class="proof-label">Cruce georreferenciado</span>
+                <strong id="regProofCross">--</strong>
+              </div>
+              <div>
+                <span class="proof-label">Cobertura fuentes</span>
+                <strong id="regProofCoverage">--</strong>
+              </div>
+              <div>
+                <span class="proof-label">Fuentes con error</span>
+                <strong id="regProofErrors">--</strong>
+              </div>
+              <div>
+                <span class="proof-label">Normativa textual</span>
+                <strong id="regProofTextual">--</strong>
+              </div>
+            </div>
+            <p class="muted small" id="regProofDetail">Sin ejecución.</p>
+          </article>
+
           <h3>Matriz de cumplimiento</h3>
           <table>
             <thead>

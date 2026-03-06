@@ -102,6 +102,15 @@ const elements = {
   decisionBanner: document.getElementById("decisionBanner"),
   decisionBannerTitle: document.getElementById("decisionBannerTitle"),
   decisionBannerText: document.getElementById("decisionBannerText"),
+  clarityCrossCard: document.getElementById("clarityCrossCard"),
+  regCrossStatus: document.getElementById("regCrossStatus"),
+  regCrossNote: document.getElementById("regCrossNote"),
+  regSourcesCount: document.getElementById("regSourcesCount"),
+  regSourcesNote: document.getElementById("regSourcesNote"),
+  regCriticalStatus: document.getElementById("regCriticalStatus"),
+  regCriticalNote: document.getElementById("regCriticalNote"),
+  regUsabilityStatus: document.getElementById("regUsabilityStatus"),
+  regUsabilityNote: document.getElementById("regUsabilityNote"),
   icetGauge: document.getElementById("icetGauge"),
   icetValue: document.getElementById("icetValue"),
   exposureLevel: document.getElementById("exposureLevel"),
@@ -120,6 +129,11 @@ const elements = {
   mapPlaceholder: document.getElementById("mapPlaceholder"),
   mapStatus: document.getElementById("mapStatus"),
 
+  regProofCross: document.getElementById("regProofCross"),
+  regProofCoverage: document.getElementById("regProofCoverage"),
+  regProofErrors: document.getElementById("regProofErrors"),
+  regProofTextual: document.getElementById("regProofTextual"),
+  regProofDetail: document.getElementById("regProofDetail"),
   complianceTableBody: document.getElementById("complianceTableBody"),
   regulatoryRefsList: document.getElementById("regulatoryRefsList"),
   contradictionsList: document.getElementById("contradictionsList"),
@@ -470,9 +484,76 @@ const setGauge = (value) => {
   elements.icetValue.textContent = String(score);
 };
 
+const summarizeRegulatoryEvidence = (run) => {
+  const sources = run?.evidencePack?.regulatorySources || [];
+  const coverage = run?.evidencePack?.sourceCoverage || null;
+  const warnings = run?.evidencePack?.sourceWarnings || [];
+  const overlaps = run?.evidencePack?.overlaps || [];
+
+  const enabledSources = sources.filter((item) => item.enabled !== false);
+  const geoSources = enabledSources.filter((item) => item.kind !== "reference");
+  const textualSources = enabledSources.filter((item) => item.kind === "reference");
+  const healthyGeoSources = geoSources.filter((item) => item.status === "ok");
+  const criticalGeoSources = geoSources.filter((item) => item.critical);
+  const healthyCritical = criticalGeoSources.filter((item) => item.status === "ok");
+
+  const healthySources = Number.isFinite(Number(coverage?.healthySources))
+    ? Number(coverage.healthySources)
+    : healthyGeoSources.length;
+  const requiredThreshold = Number.isFinite(Number(coverage?.requiredThreshold))
+    ? Number(coverage.requiredThreshold)
+    : 0;
+  const criticalRequired = Number.isFinite(Number(coverage?.criticalRequired))
+    ? Number(coverage.criticalRequired)
+    : criticalGeoSources.length;
+  const criticalHealthy = Number.isFinite(Number(coverage?.criticalHealthy))
+    ? Number(coverage.criticalHealthy)
+    : healthyCritical.length;
+
+  const sufficient = Boolean(coverage?.isSufficient);
+  const configuredGeoSources = geoSources.filter((item) => item.configured);
+  const matchedFeatures = geoSources.reduce((acc, item) => acc + Number(item.matchedCount || 0), 0);
+  const geospatialCrossDone = healthyGeoSources.length > 0 && configuredGeoSources.length > 0;
+  const geospatialEvidenceFound = overlaps.length > 0 || matchedFeatures > 0;
+  const allGeoUnconfigured = geoSources.length > 0 && configuredGeoSources.length === 0;
+
+  let crossStatus = "No";
+  let crossNote = "No hubo cruce georreferenciado oficial ejecutable.";
+  if (sufficient) {
+    crossStatus = "Sí";
+    crossNote = geospatialEvidenceFound
+      ? "Se cruzó con normativa georreferenciada y hubo coincidencias."
+      : "Se cruzó con normativa georreferenciada sin coincidencias críticas.";
+  } else if (geospatialCrossDone) {
+    crossStatus = "Parcial";
+    crossNote = "Hubo cruce parcial, pero no alcanza umbral mínimo de evidencia.";
+  } else if (allGeoUnconfigured) {
+    crossStatus = "No";
+    crossNote = "Las fuentes regulatorias están cargadas pero sin URL/capa configurada.";
+  }
+
+  return {
+    sources,
+    coverage,
+    warnings,
+    geoSources,
+    textualSources,
+    healthyGeoSources,
+    criticalRequired,
+    criticalHealthy,
+    healthySources,
+    requiredThreshold,
+    sufficient,
+    crossStatus,
+    crossNote,
+    geospatialEvidenceFound,
+  };
+};
+
 const renderExecutive = (run) => {
   const executive = run.executiveResult || {};
   const confidence = run.evidencePack?.confidence?.overall;
+  const regulatory = summarizeRegulatoryEvidence(run);
   const decisionValue = String(executive.decision?.code || executive.decision?.value || "").toUpperCase();
   const bannerTone =
     decisionValue === "FIT" || decisionValue === "GO"
@@ -497,8 +578,42 @@ const renderExecutive = (run) => {
   if (elements.decisionBanner) {
     elements.decisionBanner.className = `decision-banner ${bannerTone}`;
     elements.decisionBannerTitle.textContent = executive.decision?.label || "Pendiente";
-    elements.decisionBannerText.textContent =
-      executive.decision?.note || "Sin información para recomendar una decisión de negocio.";
+    const decisionText = executive.decision?.note || "Sin información para recomendar una decisión de negocio.";
+    const crossText = `Cruce normativo: ${regulatory.crossStatus}.`;
+    elements.decisionBannerText.textContent = `${decisionText} ${crossText}`;
+  }
+
+  if (elements.regCrossStatus) {
+    elements.regCrossStatus.textContent = regulatory.crossStatus;
+    elements.regCrossNote.textContent = regulatory.crossNote;
+  }
+
+  if (elements.regSourcesCount) {
+    elements.regSourcesCount.textContent = `${regulatory.healthySources}/${Math.max(
+      regulatory.requiredThreshold,
+      regulatory.geoSources.length
+    )}`;
+    elements.regSourcesNote.textContent = `${regulatory.geoSources.length} fuentes georreferenciadas activas`;
+  }
+
+  if (elements.regCriticalStatus) {
+    elements.regCriticalStatus.textContent = `${regulatory.criticalHealthy}/${regulatory.criticalRequired}`;
+    elements.regCriticalNote.textContent = regulatory.criticalRequired
+      ? "Fuentes críticas saludables"
+      : "Sin fuentes críticas definidas";
+  }
+
+  if (elements.regUsabilityStatus) {
+    elements.regUsabilityStatus.textContent = regulatory.sufficient ? "Concluyente" : "Provisional";
+    elements.regUsabilityNote.textContent = regulatory.sufficient
+      ? "Puedes usar este resultado para decisión preliminar."
+      : "No usar para decisión final hasta completar fuentes oficiales.";
+  }
+
+  if (elements.clarityCrossCard) {
+    elements.clarityCrossCard.className = `clarity-card ${
+      regulatory.sufficient ? "ok" : regulatory.crossStatus === "Parcial" ? "warn" : "critical"
+    }`;
   }
 
   setGauge(executive.icet || 0);
@@ -540,6 +655,7 @@ const renderExecutive = (run) => {
 };
 
 const renderRegulatory = (run) => {
+  const regulatory = summarizeRegulatoryEvidence(run);
   const matrix = run.evidencePack?.complianceMatrix || [];
   elements.complianceTableBody.innerHTML = matrix.length
     ? matrix
@@ -557,23 +673,34 @@ const renderRegulatory = (run) => {
     : '<tr><td colspan="5">Sin matriz disponible.</td></tr>';
 
   const refs = run.evidencePack?.regulatoryRefs || [];
-  const sources = run.evidencePack?.regulatorySources || [];
-  const coverage = run.evidencePack?.sourceCoverage;
-  const warnings = run.evidencePack?.sourceWarnings || [];
-  const sourceSummary = coverage
-    ? `<li><strong>Cobertura:</strong> ${coverage.healthySources}/${coverage.requiredThreshold} fuentes saludables (${coverage.isSufficient ? "Suficiente" : "Insuficiente"})</li>`
-    : "";
-  const sourceRows = sources.map(
-    (source) =>
-      `<li><strong>Fuente:</strong> ${source.name} (${source.authority}) · ${source.status} · matches ${source.matchedCount}</li>`
-  );
-  const warningRows = warnings.map((item) => `<li><strong>Fuente con error:</strong> ${item}</li>`);
+  const sourceRows = regulatory.sources.map((source) => {
+    const modeLabel = source.kind === "reference" ? "textual" : "georreferenciada";
+    const statusLabel = source.status === "ok" ? "ok" : source.status || "--";
+    return `<li><strong>Fuente ${modeLabel}:</strong> ${source.name} (${source.authority}) · ${statusLabel} · matches ${source.matchedCount}</li>`;
+  });
+  const warningRows = regulatory.warnings.map((item) => `<li><strong>Fuente con error:</strong> ${item}</li>`);
+  const sourceSummary = [
+    `<li><strong>Cruce normativo:</strong> ${regulatory.crossStatus}</li>`,
+    `<li><strong>Cobertura:</strong> ${regulatory.healthySources}/${Math.max(regulatory.requiredThreshold, regulatory.geoSources.length)} fuentes saludables (${regulatory.sufficient ? "Suficiente" : "Insuficiente"})</li>`,
+    `<li><strong>Fuentes críticas:</strong> ${regulatory.criticalHealthy}/${regulatory.criticalRequired}</li>`,
+  ].join("");
   elements.regulatoryRefsList.innerHTML = [
     sourceSummary,
     ...sourceRows,
     ...warningRows,
     ...(refs.length ? refs.map((ref) => `<li>${ref}</li>`) : ["<li>Sin referencias.</li>"]),
   ].join("");
+
+  if (elements.regProofCross) {
+    elements.regProofCross.textContent = regulatory.crossStatus;
+    elements.regProofCoverage.textContent = `${regulatory.healthySources}/${Math.max(
+      regulatory.requiredThreshold,
+      regulatory.geoSources.length
+    )}`;
+    elements.regProofErrors.textContent = String(regulatory.warnings.length);
+    elements.regProofTextual.textContent = String(regulatory.textualSources.length);
+    elements.regProofDetail.textContent = regulatory.crossNote;
+  }
 };
 
 const renderContradictions = (run) => {
@@ -667,6 +794,7 @@ const renderEvidence = (run) => {
   renderSatellite(run);
   renderEnvironment(run);
   renderTraceability(run);
+  const regulatory = summarizeRegulatoryEvidence(run);
 
   const coordinates = run.caseSnapshot?.location?.coordinates || getCoordinates();
   const boundary = run.caseSnapshot?.boundaryGeoJSON || state.boundaryGeoJSON;
@@ -674,6 +802,8 @@ const renderEvidence = (run) => {
 
   if (run.evidencePack?.overlaps?.length) {
     elements.mapStatus.textContent = `${run.evidencePack.overlaps.length} solapamientos detectados en zonas sensibles.`;
+  } else if (!regulatory.sufficient) {
+    elements.mapStatus.textContent = "Sin solapamientos en chequeo inicial. Nota: el resultado aún no es concluyente por evidencia regulatoria incompleta.";
   } else {
     elements.mapStatus.textContent = "Sin solapamientos sensibles detectados en chequeo inicial.";
   }
@@ -954,6 +1084,23 @@ const clearCase = () => {
     elements.decisionBanner.className = "decision-banner neutral";
     elements.decisionBannerTitle.textContent = "Pendiente de ejecución";
     elements.decisionBannerText.textContent = "Carga el caso y ejecuta el análisis para obtener recomendación.";
+  }
+
+  if (elements.regCrossStatus) {
+    elements.regCrossStatus.textContent = "--";
+    elements.regCrossNote.textContent = "Sin ejecución.";
+    elements.regSourcesCount.textContent = "--";
+    elements.regSourcesNote.textContent = "Sin datos.";
+    elements.regCriticalStatus.textContent = "--";
+    elements.regCriticalNote.textContent = "Sin datos.";
+    elements.regUsabilityStatus.textContent = "--";
+    elements.regUsabilityNote.textContent = "Sin datos.";
+    elements.regProofCross.textContent = "--";
+    elements.regProofCoverage.textContent = "--";
+    elements.regProofErrors.textContent = "--";
+    elements.regProofTextual.textContent = "--";
+    elements.regProofDetail.textContent = "Sin ejecución.";
+    elements.clarityCrossCard.className = "clarity-card";
   }
 
   setStage("setup");

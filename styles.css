@@ -470,6 +470,43 @@ button:disabled {
   grid-template-columns: 1fr 0.7fr 1fr;
 }
 
+.evidence-clarity {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.clarity-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fbfdff;
+}
+
+.clarity-card strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+  line-height: 1.05;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.clarity-card.ok {
+  border-color: #9ad5bf;
+  background: #effbf5;
+}
+
+.clarity-card.warn {
+  border-color: #e7cd98;
+  background: #fff9ee;
+}
+
+.clarity-card.critical {
+  border-color: #ebb2bc;
+  background: #fff2f5;
+}
+
 .decision-banner {
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -714,6 +751,42 @@ button:disabled {
   gap: 10px;
 }
 
+.regulatory-proof-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #f9fbff;
+}
+
+.proof-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 8px;
+}
+
+.proof-grid > div {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.proof-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #5d7296;
+}
+
+.proof-grid strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+  font-family: var(--font-display);
+}
+
 .map-box {
   position: relative;
   height: 420px;
@@ -793,9 +866,11 @@ button:disabled {
 
   .hero,
   .setup-grid,
+  .evidence-clarity,
   .result-grid,
   .kpis-row,
-  .two-col {
+  .two-col,
+  .proof-grid {
     grid-template-columns: 1fr;
   }
 
