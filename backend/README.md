@@ -6,6 +6,9 @@ Node/Express backend for **Forensic Environmental Auditor v2**.
 
 1. `cp .env.example .env` and set env vars.
 2. (Opcional recomendado) copia `backend/config/regulatory-sources.example.json` y reemplaza URLs por capas oficiales.
+   - Arranque rápido AR: `backend/config/regulatory-sources.ar.initial.json`
+   - Pack Lawen v1: `backend/config/regulatory-sources.ar.lawen.v1.json`
+   - Pack Lawen v2: `backend/config/regulatory-sources.ar.lawen.v2.json`
 3. `npm install`
 4. `npm run dev`
 
@@ -68,3 +71,8 @@ Includes unit tests for scoring, inconsistency, and geometry utilities.
 - External providers (Google/Planet/OpenAI/Overpass) are optional; engine degrades gracefully when unavailable.
 - Regulatory evidence gate: if critical georeferenced sources are not healthy, decision is set to `No concluyente` and score is considered provisional.
 - Para activar fuentes regulatorias reales: define `REGULATORY_SOURCES_FILE=backend/config/regulatory-sources.json`.
+- Para probar catálogo inicial Argentina: `REGULATORY_SOURCES_FILE=backend/config/regulatory-sources.ar.initial.json`.
+- Para probar pack Lawen v1: `REGULATORY_SOURCES_FILE=backend/config/regulatory-sources.ar.lawen.v1.json`.
+- Para probar pack Lawen v2: `REGULATORY_SOURCES_FILE=backend/config/regulatory-sources.ar.lawen.v2.json`.
+- `kind: reference` permite agregar fuentes normativas textuales (sin geometría) para trazabilidad legal.
+- `enabled: false` permite dejar una fuente en catálogo sin ejecutarla hasta validar endpoint/layer.

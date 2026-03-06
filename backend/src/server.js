@@ -16,7 +16,7 @@ const { fetchPlanetProcessingSignals } = require("./planetProcessingService");
 const { getStore } = require("./v2/persistence/store");
 const { runCaseAnalysis, ensureMode } = require("./v2/orchestrator/runOrchestrator");
 const { buildJsonReport, buildPdfReport } = require("./v2/reporting/reportingService");
-const { getSourceRegistry, getRegistryConfig } = require("./v2/regulatory/sourceRegistry");
+const { getSourceRegistry, getSourceRegistryWithOptions, getRegistryConfig } = require("./v2/regulatory/sourceRegistry");
 
 dotenv.config();
 
@@ -219,7 +219,7 @@ app.get("/api/v2/health", (_req, res) => {
 });
 
 app.get("/api/v2/regulatory/sources", (_req, res) => {
-  const sources = getSourceRegistry().map((source) => ({
+  const sources = getSourceRegistryWithOptions({ includeDisabled: true }).map((source) => ({
     id: source.id,
     name: source.name,
     authority: source.authority,
@@ -229,7 +229,10 @@ app.get("/api/v2/regulatory/sources", (_req, res) => {
     citationUrl: source.citationUrl || source.url || "",
     kind: source.kind,
     critical: source.critical,
-    configured: Boolean(source.url || source.data),
+    enabled: source.enabled,
+    configured: source.kind === "reference"
+      ? Boolean(source.citationUrl || source.legalRef)
+      : Boolean(source.url || source.data),
   }));
   const config = getRegistryConfig();
   res.json({

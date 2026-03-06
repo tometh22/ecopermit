@@ -9,7 +9,8 @@
     "citationUrl": "https://autoridad.example.ar/humedales",
     "kind": "geojson_url",
     "url": "https://datos.example.ar/humedales.geojson",
-    "critical": true
+    "critical": true,
+    "enabled": true
   },
   {
     "id": "ar-areas-protegidas",
@@ -21,7 +22,8 @@
     "citationUrl": "https://autoridad.example.ar/areas-protegidas",
     "kind": "arcgis_feature_service",
     "url": "https://services.example.gov/arcgis/rest/services/areas_protegidas/FeatureServer/0",
-    "critical": true
+    "critical": true,
+    "enabled": true
   },
   {
     "id": "ar-red-hidrica",
@@ -33,6 +35,19 @@
     "citationUrl": "https://autoridad.example.ar/red-hidrica",
     "kind": "geojson_url",
     "url": "https://datos.example.ar/red_hidrica.geojson",
-    "critical": true
+    "critical": true,
+    "enabled": true
+  },
+  {
+    "id": "ar-normativa-infloleg",
+    "name": "InfoLEG - normativa ambiental",
+    "authority": "República Argentina",
+    "jurisdiction": "AR-Nacional",
+    "type": "Normativa textual",
+    "legalRef": "Ley General del Ambiente y complementarias",
+    "citationUrl": "https://www.argentina.gob.ar/normativa",
+    "kind": "reference",
+    "critical": false,
+    "enabled": true
   }
 ]

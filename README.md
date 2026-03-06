@@ -59,6 +59,9 @@ window.APP_CONFIG = {
   - `REGULATORY_MIN_HEALTHY_SOURCES` (mínimo para resultado concluyente)
   - `REGULATORY_USE_FALLBACK_CATALOG=false` recomendado para evitar catálogo demo
   - plantilla: `backend/config/regulatory-sources.example.json`
+  - pack AR inicial: `backend/config/regulatory-sources.ar.initial.json`
+  - pack Lawen v1: `backend/config/regulatory-sources.ar.lawen.v1.json`
+  - pack Lawen v2: `backend/config/regulatory-sources.ar.lawen.v2.json`
 
 ## API v2 principal
 

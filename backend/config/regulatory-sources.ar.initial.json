@@ -1,0 +1,53 @@
+[
+  {
+    "id": "ar-ign-hidrografia-areal",
+    "name": "IGN - Hidrografía areal",
+    "authority": "Instituto Geográfico Nacional (IGN)",
+    "jurisdiction": "AR-Nacional",
+    "type": "Curso/cuerpo de agua",
+    "legalRef": "Base hidrográfica oficial",
+    "citationUrl": "https://www.ign.gob.ar/NuestrasActividades/InformacionGeoespacial/CapasSIG",
+    "kind": "geojson_url",
+    "url": "https://wms.ign.gob.ar/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ign:area_hidrografia_a&outputFormat=application/json&srsName=EPSG:4326",
+    "bboxQueryParam": "bbox",
+    "critical": true
+  },
+  {
+    "id": "ar-ign-hidrografia-lineal",
+    "name": "IGN - Hidrografía lineal",
+    "authority": "Instituto Geográfico Nacional (IGN)",
+    "jurisdiction": "AR-Nacional",
+    "type": "Red hídrica",
+    "legalRef": "Base hidrográfica oficial",
+    "citationUrl": "https://www.ign.gob.ar/NuestrasActividades/InformacionGeoespacial/CapasSIG",
+    "kind": "geojson_url",
+    "url": "https://wms.ign.gob.ar/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ign:linea_hidrografia_l&outputFormat=application/json&srsName=EPSG:4326",
+    "bboxQueryParam": "bbox",
+    "critical": true
+  },
+  {
+    "id": "ar-apn-areas-protegidas",
+    "name": "APN - Áreas protegidas",
+    "authority": "Administración de Parques Nacionales (APN)",
+    "jurisdiction": "AR-Nacional",
+    "type": "Área protegida",
+    "legalRef": "Sistema Nacional de Áreas Protegidas",
+    "citationUrl": "https://mapas.apn.gob.ar/",
+    "kind": "geojson_url",
+    "url": "https://mapas.apn.gob.ar/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=public:apn&outputFormat=application/json&srsName=EPSG:4326",
+    "bboxQueryParam": "bbox",
+    "critical": true
+  },
+  {
+    "id": "ar-georef-provincias",
+    "name": "Georef - Provincias",
+    "authority": "datos.gob.ar / Ministerio del Interior",
+    "jurisdiction": "AR-Nacional",
+    "type": "Referencia administrativa",
+    "legalRef": "Georreferenciación oficial",
+    "citationUrl": "https://www.datos.gob.ar/dataset/interior-normalizacion-datos-geograficos-codigos-postales-georef-argentina",
+    "kind": "geojson_url",
+    "url": "https://apis.datos.gob.ar/georef/api/v2.0/provincias.geojson",
+    "critical": false
+  }
+]

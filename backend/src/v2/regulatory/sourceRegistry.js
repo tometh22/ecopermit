@@ -141,6 +141,7 @@ const normalizeSource = (source, index) => {
     headers: source.headers && typeof source.headers === "object" ? source.headers : null,
     bboxQueryParam: source.bboxQueryParam ? String(source.bboxQueryParam) : "",
     data: source.data && typeof source.data === "object" ? source.data : null,
+    enabled: source.enabled !== false,
   };
 };
 
@@ -179,17 +180,16 @@ const resolveRawSources = () => {
   return DEFAULT_SOURCES;
 };
 
-const getSourceRegistry = () => {
+const getSourceRegistryWithOptions = ({ includeDisabled = false } = {}) => {
   const raw = resolveRawSources();
-  const sources = raw
+  const mergedRaw = REGULATORY_ENABLE_DEMO_SOURCES ? [...raw, ...DEMO_SOURCES] : raw;
+  const sources = mergedRaw
     .map((item, index) => normalizeSource(item, index))
     .filter(Boolean);
-
-  if (REGULATORY_ENABLE_DEMO_SOURCES) {
-    return [...sources, ...DEMO_SOURCES];
-  }
-  return sources;
+  return includeDisabled ? sources : sources.filter((item) => item.enabled);
 };
+
+const getSourceRegistry = () => getSourceRegistryWithOptions();
 
 const getRegistryConfig = () => ({
   minHealthySources: Number.isFinite(REGULATORY_MIN_HEALTHY_SOURCES)
@@ -199,5 +199,6 @@ const getRegistryConfig = () => ({
 
 module.exports = {
   getSourceRegistry,
+  getSourceRegistryWithOptions,
   getRegistryConfig,
 };

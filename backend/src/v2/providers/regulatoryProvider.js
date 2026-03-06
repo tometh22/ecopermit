@@ -109,6 +109,12 @@ const loadArcGis = async (source, projectBounds, coordinates) => {
 };
 
 const loadFromSource = async (source, projectBounds, coordinates) => {
+  if (source.kind === "reference") {
+    return {
+      data: { type: "FeatureCollection", features: [] },
+      referenceOnly: true,
+    };
+  }
   if (source.kind === "inline_geojson") {
     return { data: ensureFeatureCollection(source.data) };
   }
@@ -220,6 +226,7 @@ const getRegulatorySignals = async ({ coordinates, boundary }) => {
           featureCount: 0,
           matchedCount: 0,
           overlaps: [],
+          referenceOnly: false,
         };
       }
 
@@ -237,6 +244,7 @@ const getRegulatorySignals = async ({ coordinates, boundary }) => {
         featureCount: Array.isArray(loaded.data?.features) ? loaded.data.features.length : 0,
         matchedCount: overlaps.length,
         overlaps,
+        referenceOnly: Boolean(loaded.referenceOnly),
       };
     })
   );
@@ -260,12 +268,14 @@ const getRegulatorySignals = async ({ coordinates, boundary }) => {
       authority: item.source.authority,
       type: item.source.type,
       critical: item.source.critical,
+      enabled: item.source.enabled,
       status: item.status,
       featureCount: item.featureCount,
       matchedCount: item.matchedCount,
       error: item.error || "",
       citationUrl: item.source.citationUrl || item.source.url || "",
       legalRef: item.source.legalRef || "",
+      referenceOnly: item.referenceOnly || false,
     })),
     coverage,
     warnings: sourceResults
