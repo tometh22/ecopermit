@@ -35,6 +35,32 @@ const ensureFeatureCollection = (payload) => {
   return { type: "FeatureCollection", features: [] };
 };
 
+const safeParseJson = (rawText) => {
+  try {
+    return JSON.parse(rawText);
+  } catch (_error) {
+    return null;
+  }
+};
+
+const parseGeoPayload = async (response) => {
+  const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+  const rawText = await response.text();
+  const parsed = safeParseJson(rawText);
+
+  if (parsed) {
+    return { data: ensureFeatureCollection(parsed) };
+  }
+
+  const startsWithXml = rawText.trim().startsWith("<");
+  const bodyPreview = rawText.trim().slice(0, 120).replace(/\s+/g, " ");
+  if (startsWithXml || contentType.includes("xml") || contentType.includes("html")) {
+    return { error: `Respuesta no JSON (${contentType || "xml/html"}). Preview: ${bodyPreview}` };
+  }
+
+  return { error: `Respuesta inválida/no JSON. Preview: ${bodyPreview}` };
+};
+
 const loadGeoJsonUrl = async (source, projectBounds) => {
   if (!source.url) {
     return { error: "URL no configurada para la fuente." };
@@ -61,8 +87,7 @@ const loadGeoJsonUrl = async (source, projectBounds) => {
     return { error: `HTTP ${response.status}: ${text}` };
   }
 
-  const payload = await response.json();
-  return { data: ensureFeatureCollection(payload) };
+  return parseGeoPayload(response);
 };
 
 const loadArcGis = async (source, projectBounds, coordinates) => {
@@ -104,8 +129,7 @@ const loadArcGis = async (source, projectBounds, coordinates) => {
     return { error: `HTTP ${response.status}: ${text}` };
   }
 
-  const payload = await response.json();
-  return { data: ensureFeatureCollection(payload) };
+  return parseGeoPayload(response);
 };
 
 const loadFromSource = async (source, projectBounds, coordinates) => {
@@ -217,7 +241,14 @@ const getRegulatorySignals = async ({ coordinates, boundary }) => {
 
   const sourceResults = await Promise.all(
     registry.map(async (source) => {
-      const loaded = await loadFromSource(source, derivedBounds, coordinates);
+      let loaded = null;
+      try {
+        loaded = await loadFromSource(source, derivedBounds, coordinates);
+      } catch (error) {
+        loaded = {
+          error: error?.message || "Error no controlado al consultar fuente regulatoria.",
+        };
+      }
       if (loaded.error) {
         return {
           source,
