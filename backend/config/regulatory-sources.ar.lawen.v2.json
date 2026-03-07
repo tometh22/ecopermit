@@ -10,8 +10,10 @@
     "kind": "geojson_url",
     "url": "https://wms.ign.gob.ar/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ign:area_hidrografia_a&outputFormat=application/json&srsName=EPSG:4326",
     "bboxQueryParam": "bbox",
+    "bboxFormat": "wfs_crs",
     "critical": true,
     "enabled": true,
+    "retryWithoutBbox": true,
     "timeoutMs": 12000
   },
   {
@@ -25,8 +27,10 @@
     "kind": "geojson_url",
     "url": "https://wms.ign.gob.ar/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=ign:linea_hidrografia_l&outputFormat=application/json&srsName=EPSG:4326",
     "bboxQueryParam": "bbox",
+    "bboxFormat": "wfs_crs",
     "critical": true,
     "enabled": true,
+    "retryWithoutBbox": true,
     "timeoutMs": 12000
   },
   {
@@ -40,8 +44,10 @@
     "kind": "geojson_url",
     "url": "https://mapas.apn.gob.ar/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=public:apn&outputFormat=application/json&srsName=EPSG:4326",
     "bboxQueryParam": "bbox",
+    "bboxFormat": "wfs_crs",
     "critical": false,
     "enabled": true,
+    "retryWithoutBbox": true,
     "timeoutMs": 12000
   },
   {
@@ -79,9 +85,9 @@
     "jurisdiction": "AR-Buenos Aires",
     "type": "Referencia administrativa",
     "legalRef": "API Georef oficial",
-    "citationUrl": "https://apis.datos.gob.ar/georef/api/v2.0/municipios.geojson",
+    "citationUrl": "https://apis.datos.gob.ar/georef/api/municipios",
     "kind": "geojson_url",
-    "url": "https://apis.datos.gob.ar/georef/api/v2.0/municipios.geojson?provincia=buenos%20aires&nombre=general%20pueyrredon",
+    "url": "https://apis.datos.gob.ar/georef/api/municipios?provincia=buenos%20aires&nombre=general%20pueyrredon&formato=geojson",
     "critical": false,
     "enabled": true,
     "timeoutMs": 8000

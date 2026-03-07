@@ -37,7 +37,7 @@ const buildComplianceMatrix = ({ contradictions, overlaps, regulatoryRefs, mode,
   matrix.push({
     requirement: `${VECTOR_DB_NAMESPACE} - Suficiencia de fuentes oficiales georreferenciadas`,
     evidence: sourceCoverage
-      ? `${sourceCoverage.healthySources} fuentes saludables / ${sourceCoverage.requiredThreshold} requeridas.`
+      ? `${sourceCoverage.healthySources}/${sourceCoverage.requiredThreshold} fuentes georreferenciadas saludables. Críticas: ${sourceCoverage.criticalHealthy}/${sourceCoverage.criticalRequired}.`
       : "Sin evaluación de cobertura regulatoria.",
     status: sourceCoverage?.isSufficient ? "Cumple" : "No concluyente",
     confidence: sourceCoverage?.isSufficient ? "Alta" : "Baja",

@@ -43,6 +43,20 @@ const safeParseJson = (rawText) => {
   }
 };
 
+const extractServiceException = (rawText) => {
+  const serviceExceptionMatch = rawText.match(/<ServiceException[^>]*>([\s\S]*?)<\/ServiceException>/i);
+  if (serviceExceptionMatch?.[1]) {
+    return serviceExceptionMatch[1].replace(/\s+/g, " ").trim();
+  }
+
+  const exceptionTextMatch = rawText.match(/<ExceptionText[^>]*>([\s\S]*?)<\/ExceptionText>/i);
+  if (exceptionTextMatch?.[1]) {
+    return exceptionTextMatch[1].replace(/\s+/g, " ").trim();
+  }
+
+  return "";
+};
+
 const parseGeoPayload = async (response) => {
   const contentType = String(response.headers.get("content-type") || "").toLowerCase();
   const rawText = await response.text();
@@ -54,8 +68,12 @@ const parseGeoPayload = async (response) => {
 
   const startsWithXml = rawText.trim().startsWith("<");
   const bodyPreview = rawText.trim().slice(0, 120).replace(/\s+/g, " ");
+  const serviceException = extractServiceException(rawText);
   if (startsWithXml || contentType.includes("xml") || contentType.includes("html")) {
-    return { error: `Respuesta no JSON (${contentType || "xml/html"}). Preview: ${bodyPreview}` };
+    return {
+      error: `Respuesta no JSON (${contentType || "xml/html"}). ${serviceException ? `Detalle: ${serviceException}. ` : ""}Preview: ${bodyPreview}`,
+      nonJsonResponse: true,
+    };
   }
 
   return { error: `Respuesta inválida/no JSON. Preview: ${bodyPreview}` };
@@ -66,28 +84,48 @@ const loadGeoJsonUrl = async (source, projectBounds) => {
     return { error: "URL no configurada para la fuente." };
   }
 
-  const url = new URL(source.url);
-  if (source.bboxQueryParam && projectBounds) {
-    const bbox = `${projectBounds.minLng},${projectBounds.minLat},${projectBounds.maxLng},${projectBounds.maxLat}`;
-    url.searchParams.set(source.bboxQueryParam, bbox);
+  const executeRequest = async ({ withBbox }) => {
+    const url = new URL(source.url);
+    if (withBbox && source.bboxQueryParam && projectBounds) {
+      const bboxRaw = `${projectBounds.minLng},${projectBounds.minLat},${projectBounds.maxLng},${projectBounds.maxLat}`;
+      const bbox = source.bboxFormat === "wfs_crs" ? `${bboxRaw},EPSG:4326` : bboxRaw;
+      url.searchParams.set(source.bboxQueryParam, bbox);
+    }
+
+    const response = await withTimeout(
+      (signal) =>
+        fetch(url.toString(), {
+          method: "GET",
+          headers: source.headers || undefined,
+          signal,
+        }),
+      source.timeoutMs || DEFAULT_TIMEOUT_MS
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      return { error: `HTTP ${response.status}: ${text}` };
+    }
+
+    return parseGeoPayload(response);
+  };
+
+  const withBbox = Boolean(source.bboxQueryParam && projectBounds);
+  const firstAttempt = await executeRequest({ withBbox });
+  if (!firstAttempt.error) {
+    return firstAttempt;
   }
 
-  const response = await withTimeout(
-    (signal) =>
-      fetch(url.toString(), {
-        method: "GET",
-        headers: source.headers || undefined,
-        signal,
-      }),
-    source.timeoutMs || DEFAULT_TIMEOUT_MS
-  );
-
-  if (!response.ok) {
-    const text = await response.text();
-    return { error: `HTTP ${response.status}: ${text}` };
+  const canRetryWithoutBbox = withBbox && source.retryWithoutBbox !== false;
+  if (canRetryWithoutBbox && firstAttempt.nonJsonResponse) {
+    const retry = await executeRequest({ withBbox: false });
+    if (!retry.error) {
+      return retry;
+    }
+    return { error: `${firstAttempt.error} | Retry sin bbox: ${retry.error}` };
   }
 
-  return parseGeoPayload(response);
+  return firstAttempt;
 };
 
 const loadArcGis = async (source, projectBounds, coordinates) => {
@@ -193,8 +231,9 @@ const evaluateMatches = ({ source, featureCollection, projectBounds, coordinates
 };
 
 const summarizeCoverage = ({ sourceResults, minHealthySources }) => {
-  const critical = sourceResults.filter((item) => item.source.critical);
-  const healthy = sourceResults.filter((item) => item.status === "ok");
+  const georeferenced = sourceResults.filter((item) => !item.referenceOnly);
+  const critical = georeferenced.filter((item) => item.source.critical);
+  const healthy = georeferenced.filter((item) => item.status === "ok");
   const healthyCritical = critical.filter((item) => item.status === "ok");
 
   const criticalRequired = critical.length;
@@ -207,6 +246,7 @@ const summarizeCoverage = ({ sourceResults, minHealthySources }) => {
 
   return {
     minHealthySources: minHealthySources,
+    georeferencedSources: georeferenced.length,
     criticalRequired,
     criticalHealthy: healthyCritical.length,
     healthySources: healthy.length,

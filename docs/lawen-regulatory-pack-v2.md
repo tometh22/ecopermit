@@ -11,6 +11,7 @@ Este pack agrega a la base geoespacial nacional una capa normativa y administrat
 - Georef administrativo específico para Buenos Aires y General Pueyrredón.
 - Fuentes normativas textuales (`InfoLEG`, `Normas GBA`, `Boletín Oficial`, portal municipal) vía `kind: reference`.
 - Entradas candidatas locales (`ADA`, `Ambiente PBA`) con `enabled: false` para activar cuando se valide endpoint/capa.
+- Corrección Georef municipios: se usa `https://apis.datos.gob.ar/georef/api/municipios?...&formato=geojson` (no `v2.0/municipios.geojson`).
 
 ## Config en Render
 Setear:
@@ -39,4 +40,3 @@ Deploy backend.
 ## Regla operativa recomendada
 - Mantener críticas solo en capas robustas (alta disponibilidad).
 - Dejar capas locales nuevas como no críticas hasta 2 semanas de estabilidad.
-

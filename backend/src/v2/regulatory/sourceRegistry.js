@@ -140,6 +140,8 @@ const normalizeSource = (source, index) => {
     timeoutMs: Number(source.timeoutMs) || null,
     headers: source.headers && typeof source.headers === "object" ? source.headers : null,
     bboxQueryParam: source.bboxQueryParam ? String(source.bboxQueryParam) : "",
+    bboxFormat: source.bboxFormat ? String(source.bboxFormat) : "",
+    retryWithoutBbox: source.retryWithoutBbox !== false,
     data: source.data && typeof source.data === "object" ? source.data : null,
     enabled: source.enabled !== false,
   };
