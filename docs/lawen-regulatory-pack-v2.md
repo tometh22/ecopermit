@@ -6,8 +6,9 @@ Este pack agrega a la base geoespacial nacional una capa normativa y administrat
 - `/Users/tomi/Documents/New project/backend/config/regulatory-sources.ar.lawen.v2.json`
 
 ## Qué incorpora respecto a v1
-- Base hídrica oficial (`IGN`) como fuentes críticas.
-- Áreas protegidas (`APN`) como fuente geoespacial adicional.
+- Base hídrica oficial (`IGN`) como fuentes críticas usando endpoint workspace correcto (`/geoserver/ign/ows`) y `typeNames` explícitos.
+- Fallback de áreas protegidas por `IGN` (`ign:area_protegida`) para continuidad operativa.
+- APN queda como fuente opcional (`enabled: false`) por inestabilidad intermitente del servicio.
 - Georef administrativo específico para Buenos Aires y General Pueyrredón.
 - Fuentes normativas textuales (`InfoLEG`, `Normas GBA`, `Boletín Oficial`, portal municipal) vía `kind: reference`.
 - Entradas candidatas locales (`ADA`, `Ambiente PBA`) con `enabled: false` para activar cuando se valide endpoint/capa.
@@ -18,6 +19,8 @@ Setear:
 
 - `REGULATORY_SOURCES_FILE=backend/config/regulatory-sources.ar.lawen.v2.json`
 - `REGULATORY_MIN_HEALTHY_SOURCES=2`
+- `REGULATORY_STRICT_CRITICAL=true` para modo estricto (recomendado en QA regulatorio)
+  - usar `false` solo en modo operativo si fuentes críticas externas están inestables
 - `REGULATORY_USE_FALLBACK_CATALOG=false`
 - `REGULATORY_ENABLE_DEMO_SOURCES=false`
 
@@ -38,5 +41,7 @@ Deploy backend.
 3. Redeploy y revisar `/api/v2/regulatory/sources`.
 
 ## Regla operativa recomendada
+- `strictCritical=true`: modo estricto regulatorio (útil para compliance duro).
+- `strictCritical=false`: modo operativo (evita bloqueo total cuando caen fuentes externas críticas).
 - Mantener críticas solo en capas robustas (alta disponibilidad).
 - Dejar capas locales nuevas como no críticas hasta 2 semanas de estabilidad.

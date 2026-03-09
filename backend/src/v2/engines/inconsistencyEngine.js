@@ -52,6 +52,12 @@ const detectInconsistencies = ({
       severity: "Bloqueante",
       message: "Claim hídrico neutral incompatible con descarga/efluentes en especificaciones.",
       legalConflict: "Riesgo de subdeclaración de impacto hídrico material.",
+      legalBasis: ["Ley 12.257", "Ley 5965", "Régimen de permisos de vuelco"],
+      confidence: "Alta",
+      evidence: [
+        "Claim menciona impacto hídrico neutral/sin afectación.",
+        "Specs/EIA menciona descarga, efluente, desagüe o vuelco.",
+      ],
     });
   }
 
@@ -62,6 +68,13 @@ const detectInconsistencies = ({
       severity: "Alta",
       message: "El EIA declara ausencia de humedal pero NDWI/OSM/solapes sugieren humedad significativa.",
       legalConflict: "Inconsistencia con criterios de protección de áreas sensibles.",
+      legalBasis: ["Marco de protección de humedales/áreas sensibles"],
+      confidence: wetlandFromNdwi || wetlandFromOverlaps ? "Alta" : "Media",
+      evidence: [
+        wetlandFromOverlaps ? "Solapes geográficos con capa hídrica/humedal." : "",
+        wetlandFromTerritorial ? "Señales territoriales con humedales/cursos de agua." : "",
+        wetlandFromNdwi ? "Índice NDWI elevado." : "",
+      ].filter(Boolean),
     });
   }
 
@@ -76,6 +89,13 @@ const detectInconsistencies = ({
       severity: "Alta",
       message: "Declaración de preservación con remoción planificada sobre cobertura boscosa densa.",
       legalConflict: "Potencial incumplimiento de condicionantes de conservación.",
+      legalBasis: ["Normativa de bosque nativo/uso del suelo"],
+      confidence: hasForestEvidence ? "Alta" : "Media",
+      evidence: [
+        "Claim de preservación detectado.",
+        eia?.vegetation?.removal_planned === true ? "EIA indica remoción planificada." : "",
+        hasForestEvidence ? "Cobertura boscosa detectada en señales geoespaciales." : "",
+      ].filter(Boolean),
     });
   }
 
@@ -86,16 +106,9 @@ const detectInconsistencies = ({
       severity: "Media",
       message: "El estudio minimiza el riesgo hídrico pese a evidencia de cursos/humedales.",
       legalConflict: "Insuficiente caracterización hidrológica en línea base.",
-    });
-  }
-
-  if (mode === "EIA_QA" && contradictions.length === 0 && (claimsText || specsText)) {
-    contradictions.push({
-      code: "QA_REVIEW_REQUIRED",
-      type: "QA",
-      severity: "Media",
-      message: "No se detectaron contradicciones fuertes automáticas; se recomienda revisión manual focalizada.",
-      legalConflict: "Pendiente de validación técnica documental.",
+      legalBasis: ["Evaluación hidrológica en EIA"],
+      confidence: "Media",
+      evidence: ["Indicadores hídricos presentes en territorio."],
     });
   }
 

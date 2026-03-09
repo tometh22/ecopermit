@@ -69,10 +69,14 @@ Includes unit tests for scoring, inconsistency, and geometry utilities.
 
 - This is a due-diligence support engine and does **not** replace legal EIA filings.
 - External providers (Google/Planet/OpenAI/Overpass) are optional; engine degrades gracefully when unavailable.
-- Regulatory evidence gate: if critical georeferenced sources are not healthy, decision is set to `No concluyente` and score is considered provisional.
+- Regulatory gate does **not** replace risk scoring: it controls `validity` (`Concluyente` vs `Provisional`) while preserving the computed risk decision.
 - Para activar fuentes regulatorias reales: define `REGULATORY_SOURCES_FILE=backend/config/regulatory-sources.json`.
 - Para probar catálogo inicial Argentina: `REGULATORY_SOURCES_FILE=backend/config/regulatory-sources.ar.initial.json`.
 - Para probar pack Lawen v1: `REGULATORY_SOURCES_FILE=backend/config/regulatory-sources.ar.lawen.v1.json`.
 - Para probar pack Lawen v2: `REGULATORY_SOURCES_FILE=backend/config/regulatory-sources.ar.lawen.v2.json`.
 - `kind: reference` permite agregar fuentes normativas textuales (sin geometría) para trazabilidad legal.
 - `enabled: false` permite dejar una fuente en catálogo sin ejecutarla hasta validar endpoint/layer.
+- `REGULATORY_STRICT_CRITICAL=true` exige que todas las fuentes críticas estén saludables para resultado concluyente.
+- Para modo operativo mientras se estabilizan fuentes externas: `REGULATORY_STRICT_CRITICAL=false`.
+- En Lawen v2, fuentes IGN críticas usan WFS workspace (`/geoserver/ign/ows`) + capas de hidrografía explícitas.
+- `executiveResult.regulatorySummary` resume estado de cruce, cobertura, gate y errores por fuente para UI comercial.

@@ -14,10 +14,9 @@ const {
 const { buildComplianceMatrix } = require("../engines/regulatoryEngine");
 const { buildRoadmap } = require("../engines/roadmapEngine");
 const { buildConfidencePack } = require("../engines/confidenceEngine");
+const { computeEvidenceQuality } = require("../engines/evidenceQualityEngine");
 const { buildAlerts } = require("../engines/executiveEngine");
 const { centroidFromBoundary } = require("../utils/geo");
-
-const VECTOR_DB_NAMESPACE = process.env.VECTOR_DB_NAMESPACE || "Global_Regulatory_Framework";
 
 const MODE_LABELS = {
   PRE_EIA: "Pre‑EIA",
@@ -67,6 +66,7 @@ const buildTraceability = ({
   eia,
 }) => {
   const now = new Date().toISOString();
+  const coverage = regulatorySignals?.coverage || {};
   return [
     {
       source: "Case Intake",
@@ -93,10 +93,8 @@ const buildTraceability = ({
       source: "Regulatory Source Registry",
       timestamp: now,
       method: "Official georeferenced layers",
-      confidence: regulatorySignals?.coverage?.isSufficient ? "Alta" : "Baja",
-      note: regulatorySignals?.coverage
-        ? `${regulatorySignals.coverage.healthySources}/${regulatorySignals.coverage.requiredThreshold} fuentes saludables`
-        : "Sin cobertura regulatoria",
+      confidence: coverage?.isSufficient ? "Alta" : "Baja",
+      note: `${coverage?.healthySources || 0}/${coverage?.requiredThreshold || 0} saludables · críticas ${coverage?.criticalHealthy || 0}/${coverage?.criticalRequired || 0}`,
     },
     {
       source: "Planet",
@@ -115,41 +113,93 @@ const buildTraceability = ({
   ];
 };
 
-const buildRegulatoryRefs = ({ coordinates, overlaps, territorialSignals }) => {
-  const refs = [
-    `${VECTOR_DB_NAMESPACE} Article 3 - Biodiversity Safeguards`,
-    `${VECTOR_DB_NAMESPACE} Article 7 - Hydrographic Network Protection`,
-  ];
+const buildRegulatoryRefs = ({ coordinates, overlaps, territorialSignals, regulatorySignals, complianceMeta }) => {
+  const refs = [];
 
   if (coordinates) {
-    refs.push(`Jurisdiction overlay (${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)})`);
+    refs.push(`Jurisdicción del caso (${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)})`);
   }
 
   overlaps.forEach((zone) => refs.push(`${zone.law} (${zone.name})`));
   (territorialSignals?.regulatoryRefs || []).forEach((ref) => refs.push(ref));
+  (regulatorySignals?.regulatoryRefs || []).forEach((ref) => refs.push(ref));
+  (complianceMeta?.legalMentions || []).forEach((ref) => refs.push(`Mención EIA: ${ref}`));
 
   return Array.from(new Set(refs));
 };
 
-const buildDecisionWithSufficiency = ({ icet, defaultDecision, regulatorySignals }) => {
-  const coverage = regulatorySignals?.coverage;
-  if (!coverage?.isSufficient) {
-    const missingText = coverage?.missingCritical?.length
-      ? `Faltan fuentes críticas: ${coverage.missingCritical.join(", ")}.`
-      : `Se requieren al menos ${coverage?.requiredThreshold || 1} fuentes regulatorias saludables.`;
-    return {
-      code: "INCONCLUSIVE",
-      value: "INCONCLUSIVE",
-      label: "No concluyente",
-      note: `Resultado provisional. ${missingText}`,
-      exposureLevel: "No concluyente",
-      provisionalIcet: icet,
+const buildDecisionWithSufficiency = ({ defaultDecision, regulatorySignals, evidenceQuality }) => {
+  const coverage = regulatorySignals?.coverage || {};
+  const missingText = coverage?.missingCritical?.length
+    ? `Faltan fuentes críticas: ${coverage.missingCritical.join(", ")}.`
+    : `Se requieren al menos ${coverage?.requiredThreshold || 1} fuentes georreferenciadas saludables.`;
+
+  const isConclusive = Boolean(coverage?.isSufficient);
+  const validity = isConclusive
+    ? {
+      status: "CONCLUSIVE",
+      label: "Concluyente",
+      note: "Evidencia suficiente para sustentar una decisión preliminar.",
+    }
+    : {
+      status: "PROVISIONAL",
+      label: "Provisional",
+      note: `Resultado de riesgo válido como señal temprana, pero no concluyente para decisión final. ${missingText}`,
     };
-  }
+
+  const adjustedNote = isConclusive
+    ? defaultDecision.note
+    : `${defaultDecision.note} (Validez: provisional por cobertura regulatoria insuficiente)`;
 
   return {
-    ...defaultDecision,
-    value: defaultDecision.code,
+    decision: {
+      ...defaultDecision,
+      value: defaultDecision.code,
+      note: adjustedNote,
+    },
+    validity,
+    evidenceQuality,
+  };
+};
+
+const buildRegulatorySummary = (regulatorySignals = {}) => {
+  const coverage = regulatorySignals?.coverage || {};
+  const sources = Array.isArray(regulatorySignals?.sources) ? regulatorySignals.sources : [];
+  const geo = sources.filter((item) => !item.referenceOnly);
+  const text = sources.filter((item) => item.referenceOnly);
+  const errors = sources.filter((item) => item.status === "error");
+
+  const healthyGeo = Number(coverage.healthySources || 0);
+  const totalGeo = Number.isFinite(Number(coverage.georeferencedSources))
+    ? Number(coverage.georeferencedSources)
+    : geo.length;
+  const criticalHealthy = Number(coverage.criticalHealthy || 0);
+  const criticalRequired = Number(coverage.criticalRequired || 0);
+
+  const gateMode = coverage.gateMode || "minimum_healthy";
+  const gateLabel = gateMode === "critical" ? "Fuentes críticas" : "Cobertura mínima";
+  const gateReason = coverage.isSufficient
+    ? `${gateLabel} cumplido.`
+    : gateMode === "critical"
+      ? `Gate crítico incompleto: ${criticalHealthy}/${criticalRequired} fuentes críticas saludables.`
+      : `Gate de cobertura incompleto: ${healthyGeo}/${coverage.requiredThreshold || 0} fuentes saludables.`;
+
+  return {
+    crossStatus: coverage.crossStatus || "No",
+    isSufficient: Boolean(coverage.isSufficient),
+    healthyGeo,
+    totalGeo,
+    criticalHealthy,
+    criticalRequired,
+    textualConfigured: text.filter((item) => item.configured).length,
+    textualTotal: text.length,
+    errors: errors.map((item) => ({
+      sourceId: item.id,
+      sourceName: item.name,
+      message: item.error || "Error al consultar fuente",
+    })),
+    gateMode,
+    gateReason,
   };
 };
 
@@ -167,10 +217,13 @@ const toLogs = ({
   const logs = [
     { agent: "Case_Manager", message: `Modo ${MODE_LABELS[mode]} inicializado para ${caseData.name || "proyecto"}.` },
     { agent: "Validation", message: "Validando geometría, coordenadas y entradas documentales." },
-    { agent: "Evidence_Engine", message: "Consultando señales ambientales y geoespaciales." },
+    { agent: "Evidence_Engine", message: "Consultando señales ambientales, satelitales y geoespaciales." },
     { agent: "Consistency_Auditor", message: `${contradictions.length} contradicciones detectadas.` },
     { agent: "Scoring_Engine", message: `ICET ${executiveResult.icet}/100 (${executiveResult.exposureLevel}).` },
-    { agent: "Decision_Engine", message: `Decisión: ${executiveResult.decision.label}.` },
+    {
+      agent: "Decision_Engine",
+      message: `Decisión: ${executiveResult.decision.label}. Validez: ${executiveResult.validity.label}.`,
+    },
   ];
 
   if (overlaps.length) {
@@ -179,7 +232,7 @@ const toLogs = ({
   if (!regulatorySignals?.coverage?.isSufficient) {
     logs.push({
       agent: "Regulatory_Gate",
-      message: `Evidencia regulatoria insuficiente (${regulatorySignals?.coverage?.healthySources || 0}/${regulatorySignals?.coverage?.requiredThreshold || 0}).`,
+      message: `Evidencia regulatoria insuficiente: saludables ${regulatorySignals?.coverage?.healthySources || 0}/${regulatorySignals?.coverage?.georeferencedSources || 0} · críticas ${regulatorySignals?.coverage?.criticalHealthy || 0}/${regulatorySignals?.coverage?.criticalRequired || 0} (gate ${regulatorySignals?.coverage?.gateMode || "minimum_healthy"}).`,
     });
   }
   if (regulatorySignals?.warnings?.length) {
@@ -254,35 +307,6 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
 
   const icet = computeIcet({ indices, penalties });
   const baseDecision = decisionFromIcet(icet);
-  const decision = buildDecisionWithSufficiency({
-    icet,
-    defaultDecision: baseDecision,
-    regulatorySignals,
-  });
-  const alerts = buildAlerts({
-    contradictions,
-    overlaps,
-    territorialSignals,
-    planetSignals: satellite.planetSignals,
-    environment,
-    regulatorySignals,
-  });
-
-  const regulatoryRefs = Array.from(
-    new Set(
-      buildRegulatoryRefs({ coordinates, overlaps, territorialSignals }).concat(
-        regulatorySignals?.regulatoryRefs || []
-      )
-    )
-  );
-  const complianceMatrix = buildComplianceMatrix({
-    contradictions,
-    overlaps,
-    regulatoryRefs,
-    mode: selectedMode,
-    regulatorySignals,
-  });
-
   const confidence = buildConfidencePack({
     environment,
     territorialSignals,
@@ -291,17 +315,61 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
     eia,
     regulatorySignals,
   });
+  const evidenceQuality = computeEvidenceQuality({
+    regulatorySignals,
+    eia,
+    satellite,
+    environment,
+    contradictions,
+  });
+  const decisionBundle = buildDecisionWithSufficiency({
+    defaultDecision: baseDecision,
+    regulatorySignals,
+    evidenceQuality,
+  });
+  const regulatorySummary = buildRegulatorySummary(regulatorySignals);
+
+  const compliancePack = buildComplianceMatrix({
+    contradictions,
+    overlaps,
+    regulatoryRefs: regulatorySignals?.regulatoryRefs || [],
+    mode: selectedMode,
+    regulatorySignals,
+    caseData,
+    eia,
+  });
+
+  const regulatoryRefs = buildRegulatoryRefs({
+    coordinates,
+    overlaps,
+    territorialSignals,
+    regulatorySignals,
+    complianceMeta: compliancePack,
+  });
+
+  const alerts = buildAlerts({
+    contradictions,
+    overlaps,
+    territorialSignals,
+    planetSignals: satellite.planetSignals,
+    environment,
+    regulatorySignals,
+    evidenceQuality,
+  });
 
   const executiveResult = {
-    decision,
+    decision: decisionBundle.decision,
+    validity: decisionBundle.validity,
+    evidenceQuality,
+    regulatorySummary,
     icet,
-    exposureLevel: decision.exposureLevel,
+    exposureLevel: decisionBundle.decision.exposureLevel,
     topAlerts: alerts,
     indices,
     penalties,
     restrictedAreaRatio,
-    conclusive: Boolean(regulatorySignals?.coverage?.isSufficient),
-    provisional: decision.code === "INCONCLUSIVE",
+    conclusive: decisionBundle.validity.status === "CONCLUSIVE",
+    provisional: decisionBundle.validity.status !== "CONCLUSIVE",
     sourceCoverage: regulatorySignals?.coverage || null,
     updatedAt: new Date().toISOString(),
   };
@@ -315,7 +383,11 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
       processing: satellite.processingSignals,
     },
     contradictions,
-    complianceMatrix,
+    complianceMatrix: compliancePack.rows,
+    complianceMeta: {
+      jurisdiction: compliancePack.jurisdiction,
+      legalMentions: compliancePack.legalMentions,
+    },
     confidence,
     regulatorySources: regulatorySignals?.sources || [],
     sourceCoverage: regulatorySignals?.coverage || null,
@@ -337,8 +409,11 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
   const roadmap = buildRoadmap({
     contradictions,
     overlaps,
-    decision,
+    decision: decisionBundle.decision,
     mode: selectedMode,
+    regulatorySignals,
+    complianceMatrix: compliancePack,
+    evidenceQuality,
   });
 
   const kpis = {
@@ -346,7 +421,10 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
     contradictions: contradictions.length,
     overlaps: overlaps.length,
     confidence: confidence.overall,
+    evidenceQuality,
     regulatoryEvidenceSufficient: Boolean(regulatorySignals?.coverage?.isSufficient),
+    regulatoryCrossStatus: regulatorySummary.crossStatus,
+    validity: decisionBundle.validity.status,
   };
 
   const logs = toLogs({

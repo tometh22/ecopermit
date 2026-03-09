@@ -72,8 +72,10 @@ const buildPdfReport = (run) => {
     `Mode: ${run.mode}`,
     `ICET: ${result.icet ?? "--"}`,
     `Decision: ${result.decision?.label || "--"}`,
+    `Validez: ${result.validity?.label || "--"}`,
     `Exposure: ${result.exposureLevel || "--"}`,
     `Conclusive: ${result.conclusive ? "Yes" : "No (provisional)"}`,
+    `Evidence Quality: ${result.evidenceQuality?.score ?? "--"}/100`,
     run.evidencePack?.sourceCoverage
       ? `Regulatory coverage: ${run.evidencePack.sourceCoverage.healthySources}/${run.evidencePack.sourceCoverage.requiredThreshold}`
       : "Regulatory coverage: --",

@@ -1,19 +1,21 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap");
+
 :root {
   color-scheme: light;
-  --bg: #edf2fb;
+  --bg: #eaf0f8;
   --panel: #ffffff;
-  --line: #d2dced;
-  --text: #0e1930;
-  --muted: #4f6282;
-  --brand: #1a56d9;
-  --brand-soft: #e5edff;
-  --danger: #b52443;
-  --warn: #b56112;
+  --line: #ccd8eb;
+  --text: #0d1a33;
+  --muted: #4f6487;
+  --brand: #1f5de7;
+  --brand-soft: #e8efff;
+  --danger: #b72243;
+  --warn: #b66317;
   --ok: #14724f;
-  --shadow: 0 22px 44px rgba(16, 34, 63, 0.12);
+  --shadow: 0 18px 36px rgba(14, 34, 67, 0.12);
   --radius: 18px;
-  --font: "General Sans", "Inter", "Avenir Next", "Segoe UI", sans-serif;
-  --font-display: "Satoshi", "General Sans", "Inter", "Avenir Next", sans-serif;
+  --font: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
+  --font-display: "Sora", "IBM Plex Sans", sans-serif;
 }
 
 * {
@@ -25,9 +27,9 @@ body {
   font-family: var(--font);
   color: var(--text);
   background:
-    radial-gradient(circle at 10% 8%, rgba(26, 86, 217, 0.2), transparent 34%),
-    radial-gradient(circle at 88% 0%, rgba(31, 160, 124, 0.16), transparent 32%),
-    linear-gradient(180deg, #f8fbff 0%, var(--bg) 42%);
+    radial-gradient(circle at 12% 8%, rgba(31, 93, 231, 0.18), transparent 38%),
+    radial-gradient(circle at 84% 0%, rgba(30, 163, 133, 0.16), transparent 36%),
+    linear-gradient(180deg, #f7faff 0%, var(--bg) 40%);
 }
 
 .app-shell {
@@ -60,8 +62,8 @@ body {
 
 h1 {
   margin: 0;
-  font-size: 54px;
-  line-height: 1.02;
+  font-size: 56px;
+  line-height: 1.01;
   font-family: var(--font-display);
   letter-spacing: -0.03em;
 }
@@ -78,7 +80,7 @@ p {
   color: var(--muted);
   line-height: 1.45;
   max-width: 760px;
-  font-size: 24px;
+  font-size: 23px;
   letter-spacing: -0.01em;
 }
 
@@ -556,6 +558,27 @@ button:disabled {
   background: #fff0f3;
 }
 
+.quality-strip {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.quality-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: linear-gradient(180deg, #ffffff, #f4f8ff);
+}
+
+.quality-card strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
 .decision-card,
 .score-card,
 .alerts-card,
@@ -677,6 +700,7 @@ button:disabled {
 .indices-card table,
 .tab-panel table {
   width: 100%;
+  min-width: 760px;
   border-collapse: collapse;
   background: #fff;
   border-radius: 10px;
@@ -744,6 +768,7 @@ button:disabled {
 
 .tab-panel {
   display: none;
+  overflow-x: auto;
 }
 
 .tab-panel.active {
@@ -785,6 +810,53 @@ button:disabled {
   margin-top: 4px;
   font-size: 20px;
   font-family: var(--font-display);
+}
+
+.regulatory-columns {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 0.9fr;
+  gap: 10px;
+}
+
+.compact-table {
+  min-width: 0 !important;
+}
+
+.compact-table th,
+.compact-table td {
+  font-size: 12px !important;
+  padding: 7px 6px !important;
+  vertical-align: top;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 64px;
+}
+
+.status-pill.status-ok {
+  background: #e7f8ef;
+  color: #0d7f4f;
+}
+
+.status-pill.status-partial {
+  background: #fff4e2;
+  color: #995801;
+}
+
+.status-pill.status-error {
+  background: #ffecef;
+  color: #b42946;
+}
+
+.mt-12 {
+  margin-top: 12px;
 }
 
 .map-box {
@@ -866,11 +938,13 @@ button:disabled {
 
   .hero,
   .setup-grid,
+  .quality-strip,
   .evidence-clarity,
   .result-grid,
   .kpis-row,
   .two-col,
-  .proof-grid {
+  .proof-grid,
+  .regulatory-columns {
     grid-template-columns: 1fr;
   }
 

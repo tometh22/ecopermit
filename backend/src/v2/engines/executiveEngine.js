@@ -11,7 +11,15 @@ const topAlerts = (alerts, limit = 5) => {
     .slice(0, limit);
 };
 
-const buildAlerts = ({ contradictions, overlaps, territorialSignals, planetSignals, environment, regulatorySignals }) => {
+const buildAlerts = ({
+  contradictions,
+  overlaps,
+  territorialSignals,
+  planetSignals,
+  environment,
+  regulatorySignals,
+  evidenceQuality,
+}) => {
   const alerts = [];
 
   contradictions.forEach((item) => {
@@ -57,11 +65,19 @@ const buildAlerts = ({ contradictions, overlaps, territorialSignals, planetSigna
   if (!regulatorySignals?.coverage?.isSufficient) {
     const missing = regulatorySignals?.coverage?.missingCritical || [];
     alerts.push({
-      type: "Calidad de evidencia",
+      type: "Validez regulatoria",
       message: missing.length
-        ? `Faltan fuentes críticas: ${missing.join(", ")}.`
+        ? `Fuentes críticas pendientes: ${missing.join(", ")}.`
         : "Fuentes regulatorias insuficientes para decisión concluyente.",
       severity: "Bloqueante",
+    });
+  }
+
+  if ((evidenceQuality?.score || 0) < 55) {
+    alerts.push({
+      type: "Calidad probatoria",
+      message: `Calidad de evidencia ${evidenceQuality.score}/100 (${evidenceQuality.level}).`,
+      severity: "Alta",
     });
   }
 

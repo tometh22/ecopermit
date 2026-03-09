@@ -181,6 +181,24 @@
           <p id="decisionBannerText">Carga el caso y ejecuta el análisis para obtener recomendación.</p>
         </article>
 
+        <div class="quality-strip">
+          <article class="quality-card">
+            <span class="kicker">Riesgo ICET</span>
+            <strong id="riskStatus">--</strong>
+            <p class="muted" id="riskStatusNote">Sin cálculo.</p>
+          </article>
+          <article class="quality-card">
+            <span class="kicker">Calidad de evidencia</span>
+            <strong id="evidenceQualityValue">--</strong>
+            <p class="muted" id="evidenceQualityNote">Sin cálculo.</p>
+          </article>
+          <article class="quality-card">
+            <span class="kicker">Siguiente paso</span>
+            <strong id="nextStepTitle">--</strong>
+            <p class="muted" id="nextStepNote">Ejecuta el análisis para recomendaciones.</p>
+          </article>
+        </div>
+
         <div class="evidence-clarity">
           <article class="clarity-card" id="clarityCrossCard">
             <span class="kicker">Cruce normativo oficial</span>
@@ -317,6 +335,7 @@
             <thead>
               <tr>
                 <th>Exigencia</th>
+                <th>Base legal</th>
                 <th>Evidencia</th>
                 <th>Estado</th>
                 <th>Confianza</th>
@@ -325,8 +344,36 @@
             </thead>
             <tbody id="complianceTableBody"></tbody>
           </table>
-          <h3>Referencias regulatorias</h3>
-          <ul id="regulatoryRefsList" class="list"></ul>
+
+          <div class="regulatory-columns">
+            <article class="mini-card">
+              <h4>Fuentes georreferenciadas</h4>
+              <table class="compact-table">
+                <thead>
+                  <tr>
+                    <th>Fuente</th>
+                    <th>Estado</th>
+                    <th>Match</th>
+                    <th>Nota</th>
+                  </tr>
+                </thead>
+                <tbody id="regSourcesBody"></tbody>
+              </table>
+            </article>
+
+            <article class="mini-card">
+              <h4>Normativa detectada en EIA</h4>
+              <ul id="legalMentionsList" class="list"></ul>
+              <h4 class="mt-12">Referencias regulatorias vinculadas</h4>
+              <ul id="regulatoryRefsList" class="list"></ul>
+            </article>
+
+            <article class="mini-card">
+              <h4>Siguiente paso para validez concluyente</h4>
+              <p class="muted" id="regActionableSummary">Sin ejecución.</p>
+              <ul id="regBlockingList" class="list"></ul>
+            </article>
+          </div>
         </div>
 
         <div class="tab-panel" data-panel="contradictions">

@@ -4,8 +4,7 @@ const assert = require("node:assert/strict");
 const { buildDecisionWithSufficiency } = require("../src/v2/orchestrator/runOrchestrator");
 
 test("returns inconclusive decision when regulatory evidence is insufficient", () => {
-  const decision = buildDecisionWithSufficiency({
-    icet: 72,
+  const bundle = buildDecisionWithSufficiency({
     defaultDecision: {
       code: "FIT_WITH_STRUCTURAL_REDESIGN",
       label: "Apto con rediseño estructural",
@@ -20,16 +19,16 @@ test("returns inconclusive decision when regulatory evidence is insufficient", (
         missingCritical: ["Inventario oficial de humedales"],
       },
     },
+    evidenceQuality: { score: 41, level: "Baja" },
   });
 
-  assert.equal(decision.code, "INCONCLUSIVE");
-  assert.equal(decision.label, "No concluyente");
-  assert.equal(decision.provisionalIcet, 72);
+  assert.equal(bundle.decision.code, "FIT_WITH_STRUCTURAL_REDESIGN");
+  assert.equal(bundle.validity.status, "PROVISIONAL");
+  assert.equal(bundle.validity.label, "Provisional");
 });
 
 test("keeps computed decision when evidence coverage is sufficient", () => {
-  const decision = buildDecisionWithSufficiency({
-    icet: 45,
+  const bundle = buildDecisionWithSufficiency({
     defaultDecision: {
       code: "FIT_WITH_MINOR_MITIGATIONS",
       label: "Apto con mitigaciones menores",
@@ -43,8 +42,10 @@ test("keeps computed decision when evidence coverage is sufficient", () => {
         healthySources: 2,
       },
     },
+    evidenceQuality: { score: 78, level: "Alta" },
   });
 
-  assert.equal(decision.code, "FIT_WITH_MINOR_MITIGATIONS");
-  assert.equal(decision.value, "FIT_WITH_MINOR_MITIGATIONS");
+  assert.equal(bundle.decision.code, "FIT_WITH_MINOR_MITIGATIONS");
+  assert.equal(bundle.decision.value, "FIT_WITH_MINOR_MITIGATIONS");
+  assert.equal(bundle.validity.status, "CONCLUSIVE");
 });

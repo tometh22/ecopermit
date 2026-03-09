@@ -5,6 +5,7 @@ const REGULATORY_SOURCES_JSON = process.env.REGULATORY_SOURCES_JSON || "";
 const REGULATORY_SOURCES_FILE = process.env.REGULATORY_SOURCES_FILE || "";
 const REGULATORY_MIN_HEALTHY_SOURCES = Number(process.env.REGULATORY_MIN_HEALTHY_SOURCES || 2);
 const REGULATORY_ENABLE_DEMO_SOURCES = String(process.env.REGULATORY_ENABLE_DEMO_SOURCES || "").toLowerCase() === "true";
+const REGULATORY_STRICT_CRITICAL = String(process.env.REGULATORY_STRICT_CRITICAL || "true").toLowerCase() === "true";
 
 const DEMO_SOURCES = [
   {
@@ -136,6 +137,11 @@ const normalizeSource = (source, index) => {
     citationUrl: source.citationUrl ? String(source.citationUrl) : "",
     kind,
     url: source.url ? String(source.url) : "",
+    capabilitiesUrl: source.capabilitiesUrl ? String(source.capabilitiesUrl) : "",
+    wfsVersion: source.wfsVersion ? String(source.wfsVersion) : "",
+    typeName: source.typeName ? String(source.typeName) : "",
+    typeNameHints: Array.isArray(source.typeNameHints) ? source.typeNameHints.map((item) => String(item)) : [],
+    typeNames: Array.isArray(source.typeNames) ? source.typeNames.map((item) => String(item)) : [],
     critical: Boolean(source.critical),
     timeoutMs: Number(source.timeoutMs) || null,
     headers: source.headers && typeof source.headers === "object" ? source.headers : null,
@@ -197,6 +203,7 @@ const getRegistryConfig = () => ({
   minHealthySources: Number.isFinite(REGULATORY_MIN_HEALTHY_SOURCES)
     ? REGULATORY_MIN_HEALTHY_SOURCES
     : 2,
+  strictCritical: REGULATORY_STRICT_CRITICAL,
 });
 
 module.exports = {

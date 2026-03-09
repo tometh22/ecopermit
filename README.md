@@ -57,6 +57,7 @@ window.APP_CONFIG = {
 - Fuentes regulatorias georreferenciadas:
   - `REGULATORY_SOURCES_FILE` (ruta a JSON) o `REGULATORY_SOURCES_JSON`
   - `REGULATORY_MIN_HEALTHY_SOURCES` (mínimo para resultado concluyente)
+  - `REGULATORY_STRICT_CRITICAL=true` para exigir fuentes críticas
   - `REGULATORY_USE_FALLBACK_CATALOG=false` recomendado para evitar catálogo demo
   - plantilla: `backend/config/regulatory-sources.example.json`
   - pack AR inicial: `backend/config/regulatory-sources.ar.initial.json`
@@ -75,9 +76,28 @@ window.APP_CONFIG = {
 - `GET /api/v2/cases/:id/monitoring`
 - `GET /api/v2/regulatory/sources`
 
-## Nota de calidad de evidencia
+## Lectura del resultado (clave comercial)
 
-Si faltan fuentes regulatorias críticas, la decisión pasa a `No concluyente` y el resultado se marca como provisional.
+La salida ahora separa explícitamente:
+
+- `Riesgo (ICET + decisión)`:
+  - `Apto`
+  - `Apto con mitigaciones menores`
+  - `Apto con rediseño estructural`
+  - `No recomendado`
+- `Validez probatoria`:
+  - `Concluyente` (cobertura regulatoria suficiente)
+  - `Provisional` (faltan fuentes críticas o umbral regulatorio)
+
+Esto evita mezclar “riesgo” con “calidad de evidencia”.
+
+## Cruce normativo oficial
+
+El backend publica:
+
+- `executiveResult.regulatorySummary` (estado de cruce, fuentes saludables, críticas, gate y razones)
+- `evidencePack.regulatorySources` (estado por fuente)
+- `evidencePack.complianceMatrix` (matriz con `Base legal` por exigencia)
 
 ## Worker Living EIA
 
@@ -92,3 +112,15 @@ npm run worker
 cd backend
 npm test
 ```
+
+## Pack regulatorio Lawen v2
+
+Archivo recomendado:
+
+- `/Users/tomi/Documents/New project/backend/config/regulatory-sources.ar.lawen.v2.json`
+
+Incluye:
+
+- IGN WFS (hidrografía areal + lineal) con endpoint workspace correcto (`/geoserver/ign/ows`) y capas explícitas.
+- Fallback de áreas protegidas vía IGN (`ign:area_protegida`).
+- APN WFS desactivado por defecto (inestabilidad externa), listo para reactivar.
