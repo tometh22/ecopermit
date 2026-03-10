@@ -547,6 +547,7 @@ const normalizeStatus = (loaded) => {
 const getRegulatorySignals = async ({ coordinates, boundary }) => {
   const registry = getSourceRegistry();
   const config = getRegistryConfig();
+  const runTimestamp = new Date().toISOString();
 
   const derivedBounds = boundary ? boundsFromPolygon(boundary) : boundsFromPolygon(polygonFromCenter(coordinates, 1500));
   if (!coordinates && !derivedBounds) {
@@ -602,6 +603,8 @@ const getRegulatorySignals = async ({ coordinates, boundary }) => {
           overlaps: [],
           referenceOnly: false,
           metadata: null,
+          checkedAt: runTimestamp,
+          method: source.kind,
         };
       }
 
@@ -623,6 +626,8 @@ const getRegulatorySignals = async ({ coordinates, boundary }) => {
         overlaps,
         referenceOnly: Boolean(loaded.referenceOnly),
         metadata: loaded.metadata || null,
+        checkedAt: runTimestamp,
+        method: source.kind,
       };
     })
   );
@@ -658,8 +663,12 @@ const getRegulatorySignals = async ({ coordinates, boundary }) => {
       referenceOnly: item.referenceOnly || false,
       metadata: item.metadata || null,
       kind: item.source.kind,
+      checkedAt: item.checkedAt || runTimestamp,
+      method: item.method || item.source.kind,
+      layer: item.metadata?.selectedTypeName || item.source.typeName || item.source.typeNames?.[0] || "",
     })),
     coverage,
+    fetchedAt: runTimestamp,
     warnings: sourceResults
       .filter((item) => item.status === "error")
       .map((item) => `${item.source.name}: ${item.error}`),

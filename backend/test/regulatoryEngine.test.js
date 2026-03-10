@@ -40,4 +40,6 @@ test("Builds compliance matrix with legal basis and jurisdiction", () => {
   assert.ok(result.rows.length >= 5);
   assert.equal(result.jurisdiction, "AR-BA");
   assert.ok(result.rows.every((row) => row.legalBasis));
+  assert.ok(result.rows.every((row) => Array.isArray(row.citations)));
+  assert.ok(result.rows.some((row) => row.citations.length > 0));
 });

@@ -204,6 +204,42 @@ const buildRegulatorySummary = (regulatorySignals = {}) => {
   };
 };
 
+const buildContradictionCitations = ({ contradiction, regulatorySignals, runTimestamp }) => {
+  const sources = Array.isArray(regulatorySignals?.sources) ? regulatorySignals.sources : [];
+  const hydricSources = sources.filter((item) => /agua|h[ií]dr|hidro|arroyo|curso/i.test(`${item.type || ""} ${item.name || ""}`));
+  const baseLegal = Array.isArray(contradiction?.legalBasis) ? contradiction.legalBasis : [];
+
+  const citations = baseLegal.map((item) => ({
+    source: "Normativa aplicable",
+    article: item,
+    layer: "",
+    date: runTimestamp,
+    method: "Legal mapping",
+    url: "",
+  }));
+
+  if (contradiction?.code === "HYDRIC_NEUTRAL_VS_DISCHARGE") {
+    hydricSources.slice(0, 3).forEach((source) => {
+      citations.push({
+        source: source.name,
+        article: source.legalRef || "Referencia hídrica oficial",
+        layer: source.layer || source.type || "",
+        date: source.checkedAt || runTimestamp,
+        method: source.method || "Regulatory source query",
+        url: source.citationUrl || "",
+      });
+    });
+  }
+
+  return citations;
+};
+
+const enrichContradictions = ({ contradictions, regulatorySignals, runTimestamp }) =>
+  (contradictions || []).map((item) => ({
+    ...item,
+    citations: buildContradictionCitations({ contradiction: item, regulatorySignals, runTimestamp }),
+  }));
+
 const toLogs = ({
   mode,
   caseData,
@@ -278,7 +314,7 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
     eia,
   });
 
-  const { contradictions, flags } = detectInconsistencies({
+  const { contradictions: rawContradictions, flags } = detectInconsistencies({
     caseName: caseData.name,
     claimsText: derivedClaims,
     specsText: derivedSpecs,
@@ -287,6 +323,12 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
     territorialSignals,
     planetProcessingSignals: satellite.processingSignals,
     mode: selectedMode,
+  });
+  const runTimestamp = new Date().toISOString();
+  const contradictions = enrichContradictions({
+    contradictions: rawContradictions,
+    regulatorySignals,
+    runTimestamp,
   });
 
   const restrictedAreaRatio = inferRestrictedAreaRatio({ overlaps, territorialSignals, boundary });
@@ -373,7 +415,7 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
     conclusive: decisionBundle.validity.status === "CONCLUSIVE",
     provisional: decisionBundle.validity.status !== "CONCLUSIVE",
     sourceCoverage: regulatorySignals?.coverage || null,
-    updatedAt: new Date().toISOString(),
+    updatedAt: runTimestamp,
   };
 
   const evidencePack = {

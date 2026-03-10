@@ -686,6 +686,22 @@ const canonicalLegalLabel = (value) => String(value || "")
   .trim()
   .toUpperCase();
 
+const formatCitation = (citation) => {
+  if (!citation || typeof citation !== "object") {
+    return "--";
+  }
+  const source = citation.source || "Fuente";
+  const article = citation.article || "Sin artículo";
+  const layer = citation.layer ? ` · capa ${citation.layer}` : "";
+  const method = citation.method ? ` · ${citation.method}` : "";
+  const date = citation.date ? ` · ${toIsoDate(citation.date)}` : "";
+  const label = `${source} · ${article}${layer}${date}${method}`;
+  if (citation.url) {
+    return `<a href="${citation.url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  }
+  return label;
+};
+
 const contradictionToFinding = (item) => {
   if (!item) {
     return {
@@ -704,7 +720,11 @@ const contradictionToFinding = (item) => {
       claim: "El caso/EIA declara impacto hídrico neutral o sin afectación.",
       reality: "Las especificaciones técnicas mencionan descarga, efluentes o desagües.",
       legal: `${item.legalConflict || "Posible subdeclaración de impacto hídrico."} ${Array.isArray(item.legalBasis) && item.legalBasis.length ? `Base legal: ${item.legalBasis.slice(0, 3).join(" · ")}` : ""}`.trim(),
-      evidence: Array.isArray(item.evidence) && item.evidence.length ? item.evidence : [item.message],
+      evidence: Array.isArray(item.citations) && item.citations.length
+        ? item.citations.slice(0, 4).map((c) => `${c.source} · ${c.article}${c.layer ? ` · capa ${c.layer}` : ""} · ${toIsoDate(c.date)} · ${c.method}`)
+        : Array.isArray(item.evidence) && item.evidence.length
+          ? item.evidence
+          : [item.message],
       severity: item.severity || "Alta",
     };
   }
@@ -715,7 +735,11 @@ const contradictionToFinding = (item) => {
       claim: "El expediente debería corresponder al mismo proyecto cargado.",
       reality: item.message,
       legal: item.legalConflict || "Riesgo de trazabilidad documental insuficiente.",
-      evidence: Array.isArray(item.evidence) && item.evidence.length ? item.evidence : [item.message],
+      evidence: Array.isArray(item.citations) && item.citations.length
+        ? item.citations.slice(0, 4).map((c) => `${c.source} · ${c.article} · ${toIsoDate(c.date)} · ${c.method}`)
+        : Array.isArray(item.evidence) && item.evidence.length
+          ? item.evidence
+          : [item.message],
       severity: item.severity || "Alta",
     };
   }
@@ -725,7 +749,11 @@ const contradictionToFinding = (item) => {
     claim: "Verifica claims declarados en Setup/EIA.",
     reality: item.message || "Se detectó inconsistencia automática.",
     legal: `${item.legalConflict || "Conflicto legal potencial."} ${Array.isArray(item.legalBasis) && item.legalBasis.length ? `Base legal: ${item.legalBasis.slice(0, 3).join(" · ")}` : ""}`.trim(),
-    evidence: Array.isArray(item.evidence) && item.evidence.length ? item.evidence : [item.message || "Sin evidencia detallada."],
+    evidence: Array.isArray(item.citations) && item.citations.length
+      ? item.citations.slice(0, 4).map((c) => `${c.source} · ${c.article}${c.layer ? ` · capa ${c.layer}` : ""} · ${toIsoDate(c.date)} · ${c.method}`)
+      : Array.isArray(item.evidence) && item.evidence.length
+        ? item.evidence
+        : [item.message || "Sin evidencia detallada."],
     severity: item.severity || "Media",
   };
 };
@@ -940,13 +968,15 @@ const renderRegulatory = (run) => {
             <td>${row.status}</td>
             <td>${row.confidence}</td>
             <td>${row.source}</td>
+            <td>${Array.isArray(row.citations) && row.citations.length ? formatCitation(row.citations[0]) : "--"}</td>
           </tr>`
         )
         .join("")
-    : '<tr><td colspan="6">Sin matriz disponible.</td></tr>';
+    : '<tr><td colspan="7">Sin matriz disponible.</td></tr>';
 
   const refs = run.evidencePack?.regulatoryRefs || [];
   const legalMentions = run.evidencePack?.complianceMeta?.legalMentions || [];
+  const jurisdiction = run.evidencePack?.complianceMeta?.jurisdiction || "--";
   const geoSources = regulatory.sources.filter((source) => source.kind !== "reference");
   elements.regSourcesBody.innerHTML = geoSources.length
     ? geoSources
@@ -1008,8 +1038,8 @@ const renderRegulatory = (run) => {
     ? missingCritical.slice(0, 5).map((item) => `<li>${item}</li>`).join("")
     : "<li>Sin bloqueos técnicos de fuentes.</li>";
   elements.regActionableSummary.textContent = regulatory.sufficient
-    ? "Cruce normativo concluyente. Puedes usar este resultado en due diligence preliminar."
-    : (regulatory.gateReason || "Resultado provisional: completa fuentes georreferenciadas críticas para una conclusión final.");
+    ? `Cruce normativo concluyente para jurisdicción ${jurisdiction}. Puedes usar este resultado en due diligence preliminar.`
+    : `Jurisdicción ${jurisdiction}. ${regulatory.gateReason || "Resultado provisional: completa fuentes georreferenciadas críticas para una conclusión final."}`;
 
   if (elements.regProofCross) {
     elements.regProofCross.textContent = regulatory.crossStatus;
