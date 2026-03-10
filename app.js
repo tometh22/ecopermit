@@ -102,6 +102,13 @@ const elements = {
   decisionBanner: document.getElementById("decisionBanner"),
   decisionBannerTitle: document.getElementById("decisionBannerTitle"),
   decisionBannerText: document.getElementById("decisionBannerText"),
+  aiSummaryCard: document.getElementById("aiSummaryCard"),
+  aiSummarySource: document.getElementById("aiSummarySource"),
+  aiSummaryHeadline: document.getElementById("aiSummaryHeadline"),
+  aiSummaryText: document.getElementById("aiSummaryText"),
+  aiSummaryWhy: document.getElementById("aiSummaryWhy"),
+  aiSummaryActions: document.getElementById("aiSummaryActions"),
+  aiSummaryCaveats: document.getElementById("aiSummaryCaveats"),
   riskStatus: document.getElementById("riskStatus"),
   riskStatusNote: document.getElementById("riskStatusNote"),
   evidenceQualityValue: document.getElementById("evidenceQualityValue"),
@@ -680,6 +687,7 @@ const renderExecutive = (run) => {
   const decisionValue = String(executive.decision?.code || executive.decision?.value || "").toUpperCase();
   const validity = executive.validity || {};
   const evidenceQuality = executive.evidenceQuality || run.kpis?.evidenceQuality || {};
+  const aiNarrative = executive.aiNarrative || null;
   const bannerTone =
     decisionValue === "FIT" || decisionValue === "GO"
       ? "positive"
@@ -704,6 +712,22 @@ const renderExecutive = (run) => {
     const decisionText = executive.decision?.note || "Sin información para recomendar una decisión de negocio.";
     const validityText = validity.note || "Validez no calculada.";
     elements.decisionBannerText.textContent = `${decisionText} ${validityText}`;
+  }
+
+  if (elements.aiSummaryCard) {
+    const source = aiNarrative?.source === "openai" ? "GPT" : "fallback";
+    elements.aiSummarySource.textContent = source;
+    elements.aiSummaryHeadline.textContent = aiNarrative?.headline || "Sin ejecución";
+    elements.aiSummaryText.textContent = aiNarrative?.summary || "Ejecuta el análisis para obtener una síntesis ejecutiva automática.";
+    elements.aiSummaryWhy.innerHTML = Array.isArray(aiNarrative?.why) && aiNarrative.why.length
+      ? aiNarrative.why.map((item) => `<li>${item}</li>`).join("")
+      : "<li>Sin señales resumidas.</li>";
+    elements.aiSummaryActions.innerHTML = Array.isArray(aiNarrative?.actions) && aiNarrative.actions.length
+      ? aiNarrative.actions.map((item) => `<li>${item}</li>`).join("")
+      : "<li>Sin acciones sugeridas.</li>";
+    elements.aiSummaryCaveats.innerHTML = Array.isArray(aiNarrative?.caveats) && aiNarrative.caveats.length
+      ? aiNarrative.caveats.map((item) => `<li>${item}</li>`).join("")
+      : "<li>Sin caveats críticos.</li>";
   }
 
   if (elements.riskStatus) {
@@ -1317,6 +1341,14 @@ const clearCase = () => {
     elements.decisionBannerTitle.textContent = "Pendiente de ejecución";
     elements.decisionBannerText.textContent = "Carga el caso y ejecuta el análisis para obtener recomendación.";
   }
+  if (elements.aiSummaryCard) {
+    elements.aiSummarySource.textContent = "fallback";
+    elements.aiSummaryHeadline.textContent = "Sin ejecución";
+    elements.aiSummaryText.textContent = "Ejecuta el análisis para obtener una síntesis ejecutiva automática.";
+    elements.aiSummaryWhy.innerHTML = "<li>Sin ejecución.</li>";
+    elements.aiSummaryActions.innerHTML = "<li>Sin ejecución.</li>";
+    elements.aiSummaryCaveats.innerHTML = "<li>Sin ejecución.</li>";
+  }
 
   if (elements.riskStatus) {
     elements.riskStatus.textContent = "--";
@@ -1484,6 +1516,11 @@ const bootstrap = () => {
   if (elements.riskDriversList) {
     elements.riskDriversList.innerHTML = "<li>Sin ejecución.</li>";
     elements.thirtyDayPlanList.innerHTML = "<li>Sin ejecución.</li>";
+  }
+  if (elements.aiSummaryWhy) {
+    elements.aiSummaryWhy.innerHTML = "<li>Sin ejecución.</li>";
+    elements.aiSummaryActions.innerHTML = "<li>Sin ejecución.</li>";
+    elements.aiSummaryCaveats.innerHTML = "<li>Sin ejecución.</li>";
   }
   appendLog("System", `Frontend iniciado. API: ${API_BASE_URL}`);
 };

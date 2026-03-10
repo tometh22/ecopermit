@@ -99,6 +99,12 @@ El backend publica:
 - `evidencePack.regulatorySources` (estado por fuente)
 - `evidencePack.complianceMatrix` (matriz con `Base legal` por exigencia)
 
+## Resumen IA integral
+
+- `executiveResult.aiNarrative` agrega lectura ejecutiva del run completo (riesgo + normativa + contradicciones + plan).
+- Si `OPENAI_API_KEY` está configurada, se genera con GPT.
+- Si no, se usa fallback determinístico (sin invención de datos).
+
 ## Worker Living EIA
 
 ```bash

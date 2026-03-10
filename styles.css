@@ -580,6 +580,42 @@ button:disabled {
   background: #fff0f3;
 }
 
+.ai-summary-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff, #f7faff);
+  display: grid;
+  gap: 10px;
+}
+
+.ai-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ai-summary-card h3 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+}
+
+.ai-summary-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ai-summary-grid strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
 .quality-strip {
   display: grid;
   gap: 10px;
@@ -971,6 +1007,7 @@ button:disabled {
   }
 
   .hero,
+  .ai-summary-grid,
   .setup-grid,
   .quality-strip,
   .action-deck,

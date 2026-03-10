@@ -16,6 +16,7 @@ const { buildRoadmap } = require("../engines/roadmapEngine");
 const { buildConfidencePack } = require("../engines/confidenceEngine");
 const { computeEvidenceQuality } = require("../engines/evidenceQualityEngine");
 const { buildAlerts } = require("../engines/executiveEngine");
+const { buildAiNarrative } = require("../engines/aiNarrativeEngine");
 const { centroidFromBoundary } = require("../utils/geo");
 
 const MODE_LABELS = {
@@ -416,6 +417,19 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
     complianceMatrix: compliancePack,
     evidenceQuality,
   });
+
+  const aiNarrative = await buildAiNarrative({
+    caseName: caseData.name,
+    mode: selectedMode,
+    decision: decisionBundle.decision,
+    validity: decisionBundle.validity,
+    icet,
+    topAlerts: alerts,
+    indices,
+    roadmapActions: roadmap.actions || [],
+    evidenceQuality,
+  });
+  executiveResult.aiNarrative = aiNarrative;
 
   const kpis = {
     timeToFirstDecisionSeconds: 0,

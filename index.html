@@ -181,6 +181,29 @@
           <p id="decisionBannerText">Carga el caso y ejecuta el análisis para obtener recomendación.</p>
         </article>
 
+        <article class="ai-summary-card" id="aiSummaryCard">
+          <div class="ai-summary-head">
+            <span class="kicker">Resumen IA (lectura integral)</span>
+            <span class="status-chip" id="aiSummarySource">fallback</span>
+          </div>
+          <h3 id="aiSummaryHeadline">Sin ejecución</h3>
+          <p class="muted" id="aiSummaryText">Ejecuta el análisis para obtener una síntesis ejecutiva automática.</p>
+          <div class="ai-summary-grid">
+            <div>
+              <strong>Por qué</strong>
+              <ul id="aiSummaryWhy" class="list"></ul>
+            </div>
+            <div>
+              <strong>Acciones sugeridas</strong>
+              <ul id="aiSummaryActions" class="list"></ul>
+            </div>
+            <div>
+              <strong>Caveats</strong>
+              <ul id="aiSummaryCaveats" class="list"></ul>
+            </div>
+          </div>
+        </article>
+
         <div class="quality-strip">
           <article class="quality-card">
             <span class="kicker">Riesgo ICET</span>
