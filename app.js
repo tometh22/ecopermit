@@ -128,6 +128,12 @@ const elements = {
   icetValue: document.getElementById("icetValue"),
   exposureLevel: document.getElementById("exposureLevel"),
   topAlerts: document.getElementById("topAlerts"),
+  findingSeverity: document.getElementById("findingSeverity"),
+  findingTitle: document.getElementById("findingTitle"),
+  findingClaim: document.getElementById("findingClaim"),
+  findingReality: document.getElementById("findingReality"),
+  findingLegal: document.getElementById("findingLegal"),
+  findingEvidence: document.getElementById("findingEvidence"),
   businessImpactTitle: document.getElementById("businessImpactTitle"),
   businessImpactNote: document.getElementById("businessImpactNote"),
   riskDriversList: document.getElementById("riskDriversList"),
@@ -680,6 +686,50 @@ const canonicalLegalLabel = (value) => String(value || "")
   .trim()
   .toUpperCase();
 
+const contradictionToFinding = (item) => {
+  if (!item) {
+    return {
+      title: "Sin incompatibilidades críticas detectadas.",
+      claim: "No se detectó contradicción automática en claims/specs.",
+      reality: "No hay evidencia técnica contradictoria de alto impacto en esta corrida.",
+      legal: "Sin conflicto legal material detectado.",
+      evidence: ["Sin evidencia crítica para esta sección."],
+      severity: "--",
+    };
+  }
+
+  if (item.code === "HYDRIC_NEUTRAL_VS_DISCHARGE") {
+    return {
+      title: "Neutralidad hídrica vs descarga/efluentes",
+      claim: "El caso/EIA declara impacto hídrico neutral o sin afectación.",
+      reality: "Las especificaciones técnicas mencionan descarga, efluentes o desagües.",
+      legal: `${item.legalConflict || "Posible subdeclaración de impacto hídrico."} ${Array.isArray(item.legalBasis) && item.legalBasis.length ? `Base legal: ${item.legalBasis.slice(0, 3).join(" · ")}` : ""}`.trim(),
+      evidence: Array.isArray(item.evidence) && item.evidence.length ? item.evidence : [item.message],
+      severity: item.severity || "Alta",
+    };
+  }
+
+  if (item.code === "EIA_CASE_MISMATCH") {
+    return {
+      title: "Documento EIA no coincide con el caso",
+      claim: "El expediente debería corresponder al mismo proyecto cargado.",
+      reality: item.message,
+      legal: item.legalConflict || "Riesgo de trazabilidad documental insuficiente.",
+      evidence: Array.isArray(item.evidence) && item.evidence.length ? item.evidence : [item.message],
+      severity: item.severity || "Alta",
+    };
+  }
+
+  return {
+    title: item.message || "Incompatibilidad detectada",
+    claim: "Verifica claims declarados en Setup/EIA.",
+    reality: item.message || "Se detectó inconsistencia automática.",
+    legal: `${item.legalConflict || "Conflicto legal potencial."} ${Array.isArray(item.legalBasis) && item.legalBasis.length ? `Base legal: ${item.legalBasis.slice(0, 3).join(" · ")}` : ""}`.trim(),
+    evidence: Array.isArray(item.evidence) && item.evidence.length ? item.evidence : [item.message || "Sin evidencia detallada."],
+    severity: item.severity || "Media",
+  };
+};
+
 const renderExecutive = (run) => {
   const executive = run.executiveResult || {};
   const confidence = run.evidencePack?.confidence?.overall;
@@ -790,6 +840,14 @@ const renderExecutive = (run) => {
   setGauge(executive.icet || 0);
 
   const alerts = executive.topAlerts || [];
+  const contradictions = run.evidencePack?.contradictions || [];
+  const primaryContradiction = contradictions.length
+    ? [...contradictions].sort((a, b) => {
+        const order = { Bloqueante: 4, Alta: 3, Media: 2, Baja: 1 };
+        return (order[b.severity] || 0) - (order[a.severity] || 0);
+      })[0]
+    : null;
+  const finding = contradictionToFinding(primaryContradiction);
   const narrative = businessNarrative({
     decisionCode: decisionValue,
     validity: validity.status,
@@ -817,6 +875,17 @@ const renderExecutive = (run) => {
     elements.thirtyDayPlanList.innerHTML = actions.length
       ? actions.map((item) => `<li><strong>${item.priority}</strong> · ${item.title} <span class="muted">(${item.timeline})</span></li>`).join("")
       : "<li>Sin acciones priorizadas.</li>";
+  }
+
+  if (elements.findingTitle) {
+    elements.findingSeverity.textContent = finding.severity || "--";
+    elements.findingTitle.textContent = finding.title;
+    elements.findingClaim.textContent = finding.claim;
+    elements.findingReality.textContent = finding.reality;
+    elements.findingLegal.textContent = finding.legal;
+    elements.findingEvidence.innerHTML = Array.isArray(finding.evidence) && finding.evidence.length
+      ? finding.evidence.slice(0, 4).map((row) => `<li>${row}</li>`).join("")
+      : "<li>Sin evidencia.</li>";
   }
 
   elements.topAlerts.innerHTML = alerts.length
@@ -1357,6 +1426,14 @@ const clearCase = () => {
     elements.evidenceQualityNote.textContent = "Sin cálculo.";
     elements.nextStepTitle.textContent = "--";
     elements.nextStepNote.textContent = "Ejecuta el análisis para recomendaciones.";
+  }
+  if (elements.findingTitle) {
+    elements.findingSeverity.textContent = "--";
+    elements.findingTitle.textContent = "Sin incompatibilidades críticas detectadas.";
+    elements.findingClaim.textContent = "--";
+    elements.findingReality.textContent = "--";
+    elements.findingLegal.textContent = "--";
+    elements.findingEvidence.innerHTML = "<li>Sin ejecución.</li>";
   }
   if (elements.businessImpactTitle) {
     elements.businessImpactTitle.textContent = "Sin ejecución";

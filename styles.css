@@ -472,6 +472,42 @@ button:disabled {
   grid-template-columns: 1fr 0.7fr 1fr;
 }
 
+.finding-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  background: linear-gradient(180deg, #fff, #f8fbff);
+  display: grid;
+  gap: 10px;
+}
+
+.finding-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.finding-card h3 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+}
+
+.finding-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.finding-grid strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
 .action-deck {
   display: grid;
   gap: 10px;
@@ -1007,6 +1043,7 @@ button:disabled {
   }
 
   .hero,
+  .finding-grid,
   .ai-summary-grid,
   .setup-grid,
   .quality-strip,
