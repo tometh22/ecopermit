@@ -278,6 +278,7 @@ const runCaseAnalysis = async ({ caseData, mode, monitoringContext = null }) => 
   });
 
   const { contradictions, flags } = detectInconsistencies({
+    caseName: caseData.name,
     claimsText: derivedClaims,
     specsText: derivedSpecs,
     eia,

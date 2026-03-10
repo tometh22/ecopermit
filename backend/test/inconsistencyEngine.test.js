@@ -36,3 +36,25 @@ test("Detects no wetland vs wetland evidence", () => {
 
   assert.ok(result.contradictions.some((item) => item.code === "NO_WETLAND_VS_EVIDENCE"));
 });
+
+test("Detects possible mismatch between case name and EIA document project", () => {
+  const result = detectInconsistencies({
+    caseName: "Lawen - Bosque y Mar",
+    claimsText: "",
+    specsText: "",
+    eia: {
+      project_name: "Pueblo Cardano",
+      wetlands: {},
+      hydrology: {},
+      vegetation: {},
+      claims: [],
+      specs: [],
+    },
+    overlaps: [],
+    territorialSignals: { summary: { wetlands: 0, forests: 0 } },
+    planetProcessingSignals: null,
+    mode: "EIA_QA",
+  });
+
+  assert.ok(result.contradictions.some((item) => item.code === "EIA_CASE_MISMATCH"));
+});

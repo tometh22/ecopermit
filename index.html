@@ -247,6 +247,22 @@
           </article>
         </div>
 
+        <div class="action-deck">
+          <article class="mini-card action-card">
+            <span class="kicker">Qué significa para negocio</span>
+            <h3 id="businessImpactTitle">Sin ejecución</h3>
+            <p class="muted" id="businessImpactNote">Ejecuta el análisis para obtener una recomendación accionable.</p>
+          </article>
+          <article class="mini-card action-card">
+            <span class="kicker">Drivers del riesgo</span>
+            <ul id="riskDriversList" class="list"></ul>
+          </article>
+          <article class="mini-card action-card">
+            <span class="kicker">Plan de 30 días</span>
+            <ul id="thirtyDayPlanList" class="list"></ul>
+          </article>
+        </div>
+
         <div class="indices-card">
           <h3>Índices sintéticos</h3>
           <table>
@@ -359,6 +375,10 @@
                 </thead>
                 <tbody id="regSourcesBody"></tbody>
               </table>
+              <details class="tech-details">
+                <summary>Ver detalle técnico de errores</summary>
+                <ul id="regBlockingList" class="list mt-12"></ul>
+              </details>
             </article>
 
             <article class="mini-card">
@@ -371,7 +391,7 @@
             <article class="mini-card">
               <h4>Siguiente paso para validez concluyente</h4>
               <p class="muted" id="regActionableSummary">Sin ejecución.</p>
-              <ul id="regBlockingList" class="list"></ul>
+              <p class="muted small" id="regBlockingHint">Los errores técnicos detallados se muestran en “Ver detalle técnico de errores”.</p>
             </article>
           </div>
         </div>

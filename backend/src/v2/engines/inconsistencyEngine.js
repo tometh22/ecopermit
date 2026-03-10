@@ -15,7 +15,33 @@ const DISCHARGE_TOKENS = [
 
 const mentionsAny = (text, tokens) => tokens.some((token) => text.includes(token));
 
+const sanitizeName = (text) => String(text || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase()
+  .replace(/[^a-z0-9\s]/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+
+const nameTokens = (text) => sanitizeName(text)
+  .split(" ")
+  .filter((token) => token.length >= 4)
+  .filter((token) => !["proyecto", "estudio", "impacto", "ambiental", "barrio", "marco", "legal"].includes(token));
+
+const isLikelyDocumentMismatch = (caseName, eiaProjectName) => {
+  const caseTokens = nameTokens(caseName);
+  const eiaTokens = nameTokens(eiaProjectName);
+  if (!caseTokens.length || !eiaTokens.length) {
+    return false;
+  }
+
+  const common = caseTokens.filter((token) => eiaTokens.includes(token));
+  const overlapRatio = common.length / Math.min(caseTokens.length, eiaTokens.length);
+  return overlapRatio < 0.34;
+};
+
 const detectInconsistencies = ({
+  caseName,
   claimsText,
   specsText,
   eia,
@@ -44,6 +70,22 @@ const detectInconsistencies = ({
   const forestFromTerritorial = (territorialSignals?.summary?.forests || 0) > 0;
   const forestFromNdvi = Number.isFinite(planetProcessingSignals?.ndviMean) && planetProcessingSignals.ndviMean >= 0.55;
   const hasForestEvidence = forestFromOverlaps || forestFromTerritorial || forestFromNdvi;
+
+  if (eia?.project_name && caseName && isLikelyDocumentMismatch(caseName, eia.project_name)) {
+    contradictions.push({
+      code: "EIA_CASE_MISMATCH",
+      type: "Documental",
+      severity: "Alta",
+      message: `El documento EIA parece corresponder a "${eia.project_name}" y no al caso "${caseName}".`,
+      legalConflict: "Riesgo de trazabilidad documental insuficiente para sustentar decisión.",
+      legalBasis: ["Integridad documental del expediente", "Debida diligencia ambiental"],
+      confidence: "Alta",
+      evidence: [
+        `Caso cargado: ${caseName}.`,
+        `Proyecto detectado en EIA: ${eia.project_name}.`,
+      ],
+    });
+  }
 
   if (hasNeutralHydricClaim && hasDischargeSpec) {
     contradictions.push({

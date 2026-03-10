@@ -34,6 +34,19 @@ const buildRoadmap = ({
     }));
   }
 
+  if (contradictions.some((item) => item.code === "EIA_CASE_MISMATCH")) {
+    actions.push(action({
+      priority: "P1",
+      title: "Validar identidad documental del EIA",
+      detail: "Confirmar que el PDF cargado corresponde al proyecto evaluado y volver a ejecutar el análisis con expediente correcto.",
+      estimatedCost: "Bajo",
+      timeline: "24-72 horas",
+      owner: "PM + Legal + Ambiente",
+      evidence: ["Contradicción EIA_CASE_MISMATCH"],
+      legalBasis: ["Integridad documental del expediente", "Debida diligencia ambiental"],
+    }));
+  }
+
   if (overlaps.length) {
     actions.push(action({
       priority: "P1",

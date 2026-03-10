@@ -472,6 +472,28 @@ button:disabled {
   grid-template-columns: 1fr 0.7fr 1fr;
 }
 
+.action-deck {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.action-card h3 {
+  margin-top: 6px;
+  font-size: 26px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+}
+
+.action-card .list {
+  margin-top: 8px;
+}
+
+.action-card .list li {
+  line-height: 1.35;
+}
+
 .evidence-clarity {
   display: grid;
   gap: 10px;
@@ -855,6 +877,18 @@ button:disabled {
   color: #b42946;
 }
 
+.tech-details {
+  margin-top: 10px;
+  border-top: 1px dashed var(--line);
+  padding-top: 8px;
+}
+
+.tech-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #2d4f8a;
+}
+
 .mt-12 {
   margin-top: 12px;
 }
@@ -939,6 +973,7 @@ button:disabled {
   .hero,
   .setup-grid,
   .quality-strip,
+  .action-deck,
   .evidence-clarity,
   .result-grid,
   .kpis-row,

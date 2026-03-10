@@ -218,6 +218,14 @@ app.get("/api/v2/health", (_req, res) => {
   res.json({ status: "ok", version: "v2" });
 });
 
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    service: "ecopermit-backend",
+    status: "ok",
+    docs: ["/api/health", "/api/v2/health", "/api/v2/cases", "/api/v2/regulatory/sources"],
+  });
+});
+
 app.get("/api/v2/regulatory/sources", (_req, res) => {
   const sources = getSourceRegistryWithOptions({ includeDisabled: true }).map((source) => ({
     id: source.id,

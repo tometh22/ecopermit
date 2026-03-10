@@ -27,6 +27,7 @@ const buildAlerts = ({
       type: item.type,
       message: item.message,
       severity: item.severity,
+      legalBasis: item.legalBasis || [],
     });
   });
 
@@ -35,6 +36,7 @@ const buildAlerts = ({
       type: "Geoespacial",
       message: `${overlaps.length} solapamientos en zonas sensibles/restringidas.`,
       severity: overlaps.length > 1 ? "Alta" : "Media",
+      legalBasis: overlaps.map((item) => item.law).filter(Boolean).slice(0, 3),
     });
   }
 
@@ -70,6 +72,7 @@ const buildAlerts = ({
         ? `Fuentes críticas pendientes: ${missing.join(", ")}.`
         : "Fuentes regulatorias insuficientes para decisión concluyente.",
       severity: "Bloqueante",
+      legalBasis: ["Gate de suficiencia regulatoria"],
     });
   }
 

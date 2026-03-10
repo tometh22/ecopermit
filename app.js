@@ -121,6 +121,10 @@ const elements = {
   icetValue: document.getElementById("icetValue"),
   exposureLevel: document.getElementById("exposureLevel"),
   topAlerts: document.getElementById("topAlerts"),
+  businessImpactTitle: document.getElementById("businessImpactTitle"),
+  businessImpactNote: document.getElementById("businessImpactNote"),
+  riskDriversList: document.getElementById("riskDriversList"),
+  thirtyDayPlanList: document.getElementById("thirtyDayPlanList"),
   indicesTableBody: document.getElementById("indicesTableBody"),
 
   runDuration: document.getElementById("runDuration"),
@@ -144,6 +148,7 @@ const elements = {
   regSourcesBody: document.getElementById("regSourcesBody"),
   legalMentionsList: document.getElementById("legalMentionsList"),
   regActionableSummary: document.getElementById("regActionableSummary"),
+  regBlockingHint: document.getElementById("regBlockingHint"),
   regBlockingList: document.getElementById("regBlockingList"),
   regulatoryRefsList: document.getElementById("regulatoryRefsList"),
   contradictionsList: document.getElementById("contradictionsList"),
@@ -617,6 +622,57 @@ const friendlyApiError = (text, fallback) => {
   return raw.slice(0, 220);
 };
 
+const parseJsonOrThrow = async (response, fallback) => {
+  const clone = response.clone();
+  try {
+    return await response.json();
+  } catch (_error) {
+    const text = await clone.text();
+    throw new Error(friendlyApiError(text, fallback));
+  }
+};
+
+const businessNarrative = ({ decisionCode, validity, icet }) => {
+  if (decisionCode === "NOT_RECOMMENDED" || decisionCode === "NO_GO") {
+    return {
+      title: "No avanzar en su forma actual",
+      note: `El caso muestra exposición alta (${icet}/100). Prioriza rediseño o reevaluación de inversión.`,
+    };
+  }
+  if (decisionCode === "FIT_WITH_STRUCTURAL_REDESIGN" || decisionCode === "GO_WITH_STRUCTURAL_REDESIGN") {
+    return {
+      title: "Avanzar solo con rediseño estructural",
+      note: `Hay riesgo material (${icet}/100). Conviene frenar permisos hasta cerrar mitigaciones críticas.`,
+    };
+  }
+  if (decisionCode === "FIT_WITH_MINOR_MITIGATIONS" || decisionCode === "GO_WITH_MINOR_MITIGATIONS") {
+    return {
+      title: "Avanzar con mitigaciones menores",
+      note: `El riesgo es controlable (${icet}/100), sujeto a cierre de tareas P1/P2.`,
+    };
+  }
+  if (decisionCode === "FIT" || decisionCode === "GO") {
+    return {
+      title: "Apto para avanzar",
+      note: `Riesgo bajo/moderado (${icet}/100). Mantén monitoreo y control documental.`,
+    };
+  }
+  return {
+    title: validity === "CONCLUSIVE" ? "Decisión disponible" : "Resultado preliminar",
+    note: validity === "CONCLUSIVE"
+      ? `Puedes usar este análisis para due diligence preliminar (${icet}/100).`
+      : "Completa evidencia crítica para llegar a una decisión concluyente.",
+  };
+};
+
+const canonicalLegalLabel = (value) => String(value || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/[^\w\s]/g, " ")
+  .replace(/\s+/g, " ")
+  .trim()
+  .toUpperCase();
+
 const renderExecutive = (run) => {
   const executive = run.executiveResult || {};
   const confidence = run.evidencePack?.confidence?.overall;
@@ -710,16 +766,48 @@ const renderExecutive = (run) => {
   setGauge(executive.icet || 0);
 
   const alerts = executive.topAlerts || [];
+  const narrative = businessNarrative({
+    decisionCode: decisionValue,
+    validity: validity.status,
+    icet: executive.icet || 0,
+  });
+
+  if (elements.businessImpactTitle) {
+    elements.businessImpactTitle.textContent = narrative.title;
+    elements.businessImpactNote.textContent = narrative.note;
+  }
+
+  if (elements.riskDriversList) {
+    elements.riskDriversList.innerHTML = alerts.length
+      ? alerts.slice(0, 3).map((item) => {
+          const legal = Array.isArray(item.legalBasis) && item.legalBasis.length
+            ? `<span class="muted small">Base legal: ${item.legalBasis.slice(0, 2).join(" · ")}</span>`
+            : "";
+          return `<li><strong>${item.type} (${item.severity})</strong> · ${item.message}${legal ? `<br>${legal}` : ""}</li>`;
+        }).join("")
+      : "<li>Sin drivers críticos detectados.</li>";
+  }
+
+  if (elements.thirtyDayPlanList) {
+    const actions = Array.isArray(run.roadmap?.actions) ? run.roadmap.actions.slice(0, 3) : [];
+    elements.thirtyDayPlanList.innerHTML = actions.length
+      ? actions.map((item) => `<li><strong>${item.priority}</strong> · ${item.title} <span class="muted">(${item.timeline})</span></li>`).join("")
+      : "<li>Sin acciones priorizadas.</li>";
+  }
+
   elements.topAlerts.innerHTML = alerts.length
     ? alerts
         .map((item) => {
           const severity = String(item.severity || "Media");
           const severityClass =
             severity === "Bloqueante" ? "crit" : severity === "Alta" ? "high" : severity === "Media" ? "med" : "low";
+          const legal = Array.isArray(item.legalBasis) && item.legalBasis.length
+            ? `<div class="muted small">Base legal: ${item.legalBasis.slice(0, 2).join(" · ")}</div>`
+            : "";
           return `
             <li class="alert-row">
               <span class="sev ${severityClass}">${severity}</span>
-              <div><strong>${item.type}</strong> · ${item.message}</div>
+              <div><strong>${item.type}</strong> · ${item.message}${legal}</div>
             </li>
           `;
         })
@@ -787,13 +875,38 @@ const renderRegulatory = (run) => {
         .join("")
     : '<tr><td colspan="4">No hay fuentes georreferenciadas activas.</td></tr>';
 
-  elements.legalMentionsList.innerHTML = legalMentions.length
-    ? legalMentions.slice(0, 12).map((item) => `<li>${item}</li>`).join("")
+  const dedupedMentions = [];
+  const mentionKeys = new Set();
+  legalMentions.forEach((item) => {
+    const label = String(item || "").trim();
+    const key = canonicalLegalLabel(label);
+    if (key && !mentionKeys.has(key)) {
+      mentionKeys.add(key);
+      dedupedMentions.push(label);
+    }
+  });
+
+  const dedupedRefs = [];
+  const refKeys = new Set();
+  refs.forEach((item) => {
+    const label = String(item || "").trim();
+    const key = canonicalLegalLabel(label);
+    if (key && !refKeys.has(key)) {
+      refKeys.add(key);
+      dedupedRefs.push(label);
+    }
+  });
+
+  elements.legalMentionsList.innerHTML = dedupedMentions.length
+    ? dedupedMentions.slice(0, 10).map((item) => `<li>${item}</li>`).join("")
     : "<li>No se detectaron menciones normativas explícitas en el documento cargado.</li>";
 
-  elements.regulatoryRefsList.innerHTML = refs.length
-    ? refs.slice(0, 12).map((ref) => `<li>${ref}</li>`).join("")
+  elements.regulatoryRefsList.innerHTML = dedupedRefs.length
+    ? dedupedRefs.slice(0, 8).map((ref) => `<li>${ref}</li>`).join("")
     : "<li>Sin referencias regulatorias vinculadas.</li>";
+  if (dedupedRefs.length > 8) {
+    elements.regulatoryRefsList.innerHTML += `<li>+${dedupedRefs.length - 8} referencias adicionales en export JSON.</li>`;
+  }
 
   const missingCritical = regulatory.summaryErrors.map(
     (item) => `${item.sourceName}: ${compactSourceError(item.message)}`
@@ -807,10 +920,16 @@ const renderRegulatory = (run) => {
 
   if (elements.regProofCross) {
     elements.regProofCross.textContent = regulatory.crossStatus;
-    elements.regProofCoverage.textContent = `${regulatory.healthySources}/${regulatory.geoSources.length}`;
+    elements.regProofCoverage.textContent = `${regulatory.healthySources}/${regulatory.geoSources.length} (mín ${regulatory.requiredThreshold || 0})`;
     elements.regProofErrors.textContent = String(regulatory.warnings.length);
     elements.regProofTextual.textContent = String(regulatory.textualSources.length);
     elements.regProofDetail.textContent = regulatory.crossNote;
+  }
+
+  if (elements.regBlockingHint) {
+    elements.regBlockingHint.textContent = missingCritical.length
+      ? `${missingCritical.length} errores técnicos detectados. Revísalos antes de una decisión final.`
+      : "Sin errores técnicos bloqueantes en fuentes regulatorias.";
   }
 };
 
@@ -822,7 +941,10 @@ const renderContradictions = (run) => {
           const severity = String(item.severity || "Media");
           const severityClass =
             severity === "Bloqueante" ? "crit" : severity === "Alta" ? "high" : severity === "Media" ? "med" : "low";
-          return `<li class="alert-row"><span class="sev ${severityClass}">${severity}</span><div>${item.message}</div></li>`;
+          const legal = Array.isArray(item.legalBasis) && item.legalBasis.length
+            ? `<div class="muted small">Base legal: ${item.legalBasis.slice(0, 2).join(" · ")}</div>`
+            : "";
+          return `<li class="alert-row"><span class="sev ${severityClass}">${severity}</span><div>${item.message}${legal}</div></li>`;
         })
         .join("")
     : "<li>Sin contradicciones automáticas.</li>";
@@ -892,15 +1014,7 @@ const renderRoadmap = (run) => {
   elements.roadmapList.innerHTML = actions.length
     ? actions
         .map(
-          (item) => {
-            const evidence = Array.isArray(item.evidence) && item.evidence.length
-              ? ` · Evidencia: ${item.evidence.slice(0, 2).join(" | ")}`
-              : "";
-            const legal = Array.isArray(item.legalBasis) && item.legalBasis.length
-              ? ` · Base legal: ${item.legalBasis.slice(0, 2).join(" | ")}`
-              : "";
-            return `<li><strong>${item.priority}</strong> · ${item.title} — ${item.detail} <em>(${item.timeline}, ${item.estimatedCost})</em>${evidence}${legal}</li>`;
-          }
+          (item) => `<li><strong>${item.priority}</strong> · ${item.title} — ${item.detail} <em>(${item.timeline}, ${item.estimatedCost})</em><br><span class="muted small">Responsable: ${item.owner}</span></li>`
         )
         .join("")
     : "<li>Sin acciones sugeridas.</li>";
@@ -977,7 +1091,7 @@ const createCaseIfNeeded = async () => {
     throw new Error(friendlyApiError(text, "No se pudo crear el caso."));
   }
 
-  const data = await response.json();
+  const data = await parseJsonOrThrow(response, "La API respondió un formato inválido al crear el caso.");
   state.currentCaseId = data.case.id;
   state.caseDirty = false;
   return state.currentCaseId;
@@ -1055,7 +1169,7 @@ const runAnalysis = async () => {
       throw new Error(friendlyApiError(text, "No se pudo ejecutar el análisis."));
     }
 
-    const data = await response.json();
+    const data = await parseJsonOrThrow(response, "La API respondió un formato inválido al ejecutar el análisis.");
     const run = data.run;
 
     if (state.mode === "LIVING_EIA") {
@@ -1212,6 +1326,12 @@ const clearCase = () => {
     elements.nextStepTitle.textContent = "--";
     elements.nextStepNote.textContent = "Ejecuta el análisis para recomendaciones.";
   }
+  if (elements.businessImpactTitle) {
+    elements.businessImpactTitle.textContent = "Sin ejecución";
+    elements.businessImpactNote.textContent = "Ejecuta el análisis para obtener una recomendación accionable.";
+    elements.riskDriversList.innerHTML = "<li>Sin ejecución.</li>";
+    elements.thirtyDayPlanList.innerHTML = "<li>Sin ejecución.</li>";
+  }
 
   if (elements.regCrossStatus) {
     elements.regCrossStatus.textContent = "--";
@@ -1241,6 +1361,9 @@ const clearCase = () => {
     }
     if (elements.regBlockingList) {
       elements.regBlockingList.innerHTML = "<li>Sin ejecución.</li>";
+    }
+    if (elements.regBlockingHint) {
+      elements.regBlockingHint.textContent = "Los errores técnicos detallados se muestran en “Ver detalle técnico de errores”.";
     }
     elements.clarityCrossCard.className = "clarity-card";
   }
@@ -1358,6 +1481,10 @@ const bootstrap = () => {
   setGauge(0);
   updateChecklist();
   setMessage("Completa datos mínimos para iniciar.");
+  if (elements.riskDriversList) {
+    elements.riskDriversList.innerHTML = "<li>Sin ejecución.</li>";
+    elements.thirtyDayPlanList.innerHTML = "<li>Sin ejecución.</li>";
+  }
   appendLog("System", `Frontend iniciado. API: ${API_BASE_URL}`);
 };
 
